@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>About G Jordan - Official</title>
+        <link rel="icon" href="favicon.png" type="image/png">
+        <link rel="preload" as="image" href="gjordan.jpg">
+<link rel="preload" as="image" href="gjordan2.jpg">
+<link rel="preload" as="image" href="gjordan3.jpg">
+<link rel="preload" as="image" href="gjordan4.jpg">
+<link rel="preload" as="image" href="gjordan5.jpg">
+        <!-- Material Icons -->
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+        <style>
+            :root {
+                --primary-color: limegreen;
+                --accent-color: gold;
+                --secondary-color: red;
+                --bg-overlay: rgba(0, 0, 0, 0.7);
+                --glow-gold: 0 0 15px gold, 0 0 30px gold;
+                --glow-multi: 0 0 15px limegreen, 0 0 30px red;
+                --navbar-bg: #000;
+                --text-color: #ddd;
+            }
+
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background: linear-gradient(135deg, #111, #1a1a1a);
+                background-size: 400% 400%;
+                animation: pulseBackground 15s ease infinite;
+                color: var(--primary-color);
+                text-align: center;
+                overflow-x: hidden;
+                position: relative;
+            }
+
+            @keyframes pulseBackground {
+                0% {
+                    background-position: 0% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+                100% {
+                    background-position: 0% 50%;
+                }
+            }
+
+            canvas#particles {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 0;
+                pointer-events: none;
+                opacity: 0.5;
+                mix-blend-mode: screen;
+            }
+
+            /* Navbar Styles */
+            .navbar {
+                position: fixed;
+                top: 0;
+                width: 100%;
+                background: var(--navbar-bg, black);
+                padding: 15px;
+                display: flex;
+                align-items: center;
+                z-index: 1000;
+            }
+
+            .navbar-title {
+                font-size: 20px;
+                font-weight: bold;
+                color: var(--accent-color, gold);
+                text-shadow: 0px 0px 8px var(--accent-color, gold);
+                flex-grow: 1;
+                text-align: center;
+                transition: all 0.4s ease;
+            }
+
+            .menu-icon {
+                font-size: 30px;
+                cursor: pointer;
+                transition: transform 0.3s ease-in-out;
+                margin-left: 15px;
+                color: var(--accent-color, gold);
+            }
+
+            .menu-icon.open {
+                transform: rotate(180deg);
+                color: red;
+            }
+
+            .menu {
+                display: none;
+                flex-direction: column;
+                position: fixed;
+                top: 60px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.9);
+                width: 80%;
+                border-radius: 10px;
+                text-align: center;
+                padding: 10px 0;
+                opacity: 0;
+                transition:
+                    opacity 0.5s ease-in-out,
+                    transform 0.5s ease-in-out;
+            }
+
+            .menu.show {
+                display: flex;
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+
+            .menu a {
+                display: block;
+                margin: 10px 20px;
+                padding: 12px 20px;
+                background: rgba(0, 0, 0, 0.7);
+                color: var(--accent-color, gold);
+                border-radius: 12px;
+                border: 1px solid var(--primary-color, limegreen);
+                box-shadow: 0 0 10px var(--primary-color, limegreen);
+                text-decoration: none;
+                font-size: 18px;
+                text-shadow: 0 0 8px var(--primary-color, limegreen);
+                transition: all 0.3s ease;
+            }
+
+            .menu a:hover {
+                background: rgba(0, 255, 0, 0.1);
+                color: var(--primary-color, limegreen);
+                transform: scale(1.05);
+                box-shadow: 0 0 16px var(--primary-color, limegreen);
+            }
+
+            /* About Page Content */
+            .container {
+                padding: 100px 20px 50px;
+                animation: fadeIn 2s ease forwards;
+                z-index: 1;
+                position: relative;
+            }
+
+            .profile-pic {
+                width: 180px;
+                height: 180px;
+                border-radius: 50%;
+                border: 4px solid gold;
+                box-shadow: var(--glow-gold);
+                object-fit: cover;
+                margin: 0 auto;
+                transition:
+                    transform 0.5s,
+                    box-shadow 0.5s;
+            }
+
+            @keyframes floatImage {
+                0%,
+                100% {
+                    transform: translateY(0);
+                }
+                50% {
+                    transform: translateY(-10px);
+                }
+            }
+
+            .profile-pic:hover {
+                transform: scale(1.05) translateY(-10px);
+                box-shadow:
+                    0 0 25px gold,
+                    0 0 50px gold;
+            }
+
+            .artist-name,
+            .subtitle,
+            .about-article {
+                opacity: 0;
+                transform: translateY(20px);
+                transition: all 1s ease;
+            }
+
+            .visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+            }
+
+            .artist-name {
+                font-size: 32px;
+                margin-top: 20px;
+                color: gold;
+                text-shadow: var(--glow-gold);
+            }
+
+            .subtitle {
+                margin-top: 20px;
+                font-size: 22px;
+                color: limegreen;
+                background: var(--bg-overlay);
+                padding: 10px 20px;
+                border-radius: 12px;
+                display: inline-block;
+                text-shadow:
+                    0 0 8px red,
+                    0 0 12px limegreen;
+                box-shadow: var(--glow-multi);
+            }
+
+            .about-article {
+                margin-top: 30px;
+                background: var(--bg-overlay);
+                color: white;
+                padding: 25px;
+                border-radius: 12px;
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+                box-shadow: 0 0 15px gold;
+                text-align: left;
+                font-size: 16px;
+                line-height: 1.6;
+            }
+
+            footer {
+                margin-top: 50px;
+                padding: 20px;
+                background: black;
+                color: var(--primary-color);
+                text-shadow: var(--glow-gold);
+                z-index: 1;
+                position: relative;
+            }
+
+            .social-links a img {
+                height: 30px;
+                margin: 0 8px;
+                transition: transform 0.3s;
+            }
+
+            .social-links a:hover img {
+                transform: scale(1.2);
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .learn-more {
+                margin-top: 30px;
+                padding: 10px 20px;
+                font-size: 18px;
+                color: black;
+                background: var(--primary-color);
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+                transition:
+                    background 0.3s,
+                    transform 0.3s;
+                box-shadow: var(--glow-gold);
+            }
+
+            .learn-more:hover {
+                background: var(--accent-color);
+                transform: scale(1.05);
+            }
+            .profile-pic-wrapper {
+                position: relative;
+                width: 180px;
+                height: 180px;
+                margin: 0 auto;
+                border-radius: 50%;
+            }
+
+            .fade-img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 180px;
+                height: 180px;
+                object-fit: cover;
+                border-radius: 50%;
+                opacity: 0;
+                transition: opacity 1s ease-in-out;
+                animation:
+                    floatImage 4s ease-in-out infinite,
+                    fadeImages 25s infinite;
+                border: 4px solid gold;
+                box-shadow: var(--glow-gold);
+                animation-timing-function: ease-in-out;
+                animation-fill-mode: both;
+            }
+
+            .fade-img:hover {
+                transform: scale(1.05) translateY(-10px);
+                box-shadow:
+                    0 0 25px gold,
+                    0 0 50px gold;
+            }
+
+            .fade-img:nth-child(1) {
+                animation-delay: 0s;
+            }
+            .fade-img:nth-child(2) {
+                animation-delay: 5s;
+            }
+            .fade-img:nth-child(3) {
+                animation-delay: 10s;
+            }
+            .fade-img:nth-child(4) {
+                animation-delay: 15s;
+            }
+            .fade-img:nth-child(5) {
+                animation-delay: 20s;
+            }
+
+            @keyframes fadeImages {
+                0% {
+                    opacity: 0;
+                }
+                4% {
+                    opacity: 1;
+                }
+                20% {
+                    opacity: 1;
+                }
+                24% {
+                    opacity: 0;
+                }
+                100% {
+                    opacity: 0;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <canvas id="particles"></canvas>
+        <!-- Navbar -->
+        <div class="navbar">
+            <span class="menu-icon" id="menuIcon" onclick="toggleMenu()"
+                >☰</span
+            >
+            <span class="navbar-title" id="navbarTitle"
+                >G Jordan's Official Webpage</span
+            >
+            <div class="menu" id="menu">
+                <a href="index.html">Home</a>
+                <a href="player.html">Videos</a>
+                <a href="#">About</a>
+                <a href="contact.html">Contact</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="profile-pic-wrapper">
+                <img src="gjordan.jpg" class="profile-pic fade-img" />
+                <img src="gjordan2.jpg" class="profile-pic fade-img" />
+                <img src="gjordan3.jpg" class="profile-pic fade-img" />
+                <img src="gjordan4.jpg" class="profile-pic fade-img" />
+                <img src="gjordan5.jpg" class="profile-pic fade-img" />
+            </div>
+            <div class="artist-name" id="artist-name">G Jordan</div>
+            <div class="subtitle" id="subtitle">About G Jordan & G73</div>
+
+            <button class="learn-more" onclick="scrollToAbout()">
+                Learn More
+            </button>
+
+            <div class="about-article" id="about-section">
+                <p>
+                    G Jordan is an artist from Kalamazoo, MI, born April 28th,
+                    2001 (23 years old). Through a vision fueled by hard work
+                    and a deep connection to music as therapy, G Jordan aspires
+                    to create something truly special within the music industry.
+                </p>
+                <p>
+                    G73 represents more than just music — it's the dream of
+                    building a powerful label for independent and underground
+                    artists, not only across the digital landscape but within
+                    live performances as well.
+                </p>
+                <p>
+                    From a young age, G Jordan found the workings of the world
+                    fascinating, always drawn to reverse engineering and
+                    innovation. Now, that passion is focused on creating
+                    influence and impact through music, entrepreneurship, and
+                    authentic self-expression.
+                </p>
+                <p>
+                    It's not just about beats or lyrics — it's about loving what
+                    you do, working hard, and passionately chasing your goals.
+                    G73 is more than a brand; it's a movement to inspire
+                    creators worldwide.
+                </p>
+            </div>
+        </div>
+
+        <footer>
+            <div class="social-links">
+                <a href="https://facebook.com" target="_blank"
+                    ><img
+                        src="https://img.icons8.com/color/50/facebook.png"
+                        alt="Facebook"
+                /></a>
+                <a href="https://instagram.com" target="_blank"
+                    ><img
+                        src="https://img.icons8.com/color/50/instagram-new.png"
+                        alt="Instagram"
+                /></a>
+                <a href="https://youtube.com" target="_blank"
+                    ><img
+                        src="https://img.icons8.com/color/50/youtube-play.png"
+                        alt="YouTube"
+                /></a>
+                <a href="https://tiktok.com" target="_blank"
+                    ><img
+                        src="https://img.icons8.com/color/50/tiktok.png"
+                        alt="TikTok"
+                /></a>
+            </div>
+            <div style="margin-top: 10px">
+                &copy; 2025 G Jordan |
+                <span style="color: limegreen">G73™ LLC</span>
+            </div>
+        </footer>
+        <script>
+            // Navbar Toggle
+            function toggleMenu() {
+                const menu = document.getElementById("menu");
+                const menuIcon = document.getElementById("menuIcon");
+                const navbarTitle = document.getElementById("navbarTitle");
+                if (menu.classList.contains("show")) {
+                    menu.classList.remove("show");
+                    menuIcon.innerHTML = "☰";
+                    menuIcon.classList.remove("open");
+                    navbarTitle.innerText = "G Jordan's Official Webpage";
+                } else {
+                    menu.classList.add("show");
+                    menuIcon.innerHTML = "✖";
+                    menuIcon.classList.add("open");
+                    navbarTitle.innerText = "G Jordan’s World";
+                }
+            }
+            // Learn More Smooth Scroll
+            function scrollToAbout() {
+                document
+                    .getElementById("about-section")
+                    .scrollIntoView({ behavior: "smooth" });
+            }
+
+            // Reveal on Scroll
+            window.addEventListener("scroll", () => {
+                const elements = [
+                    document.getElementById("artist-name"),
+                    document.getElementById("subtitle"),
+                    document.getElementById("about-section")
+                ];
+                elements.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.top < window.innerHeight - 100) {
+                        el.classList.add("visible");
+                    }
+                });
+            });
+
+            // Particle background
+            const canvas = document.getElementById("particles");
+            const ctx = canvas.getContext("2d");
+            let particles = [];
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener("resize", resize);
+
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2 + 1,
+                    dx: (Math.random() - 0.5) * 0.5,
+                    dy: (Math.random() - 0.5) * 0.5
+                });
+            }
+
+            function drawParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    p.x += p.dx;
+                    p.y += p.dy;
+                    if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+                });
+                requestAnimationFrame(drawParticles);
+            }
+            drawParticles();
+        </script>
+    </body>
+</html>

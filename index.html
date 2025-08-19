@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>G Jordan - Official</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="css/main.css" />
+  <!-- Equalizer styles -->
+  <link rel="stylesheet" href="css/eq.css" />
+  <!-- Font Awesome (if needed) -->
+  <script src="https://kit.fontawesome.com/YOUR-FONT-AWESOME-KIT.js" crossorigin="anonymous"></script>
+
+  <!-- Site → EQ theme mapping (single source of truth) -->
+  <style>
+    :root{
+      /* Your site sets these or they fall back. eq.css reads them. */
+      --app-primary: var(--mainThemeColor, var(--theme-primary, var(--primary-color, #5fa0ff)));
+      --app-accent:  var(--accentColor,    var(--theme-accent,  var(--secondary-color, #b478ff)));
+    }
+  </style>
+
+  <!-- EQ patches (do not edit eq.css): fix WebKit double-track + center vertical thumbs -->
+  <style>
+    /* PREAMP (horizontal) – render track only via pseudo-element to avoid double painting on WebKit */
+    #eq-preamp{
+      -webkit-appearance: none;
+      appearance: none;
+      height: var(--eq-preamp-h, 8px);
+      width: 100%;
+      border-radius: 999px;
+      outline: none;
+      background: transparent; /* critical: no background on the input itself */
+      border: none;
+    }
+    #eq-preamp::-webkit-slider-runnable-track{
+      height: var(--eq-preamp-h, 8px);
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--eq-accent1), var(--eq-accent2));
+      border: 1px solid var(--eq-soft-stroke, rgba(255,255,255,.14));
+      box-shadow: inset 0 0 0 1px var(--eq-inner-border, rgba(255,255,255,.06)), 0 1px 10px rgba(0,0,0,.35);
+    }
+    #eq-preamp:focus::-webkit-slider-runnable-track{
+      box-shadow: 0 0 0 3px var(--eq-accent-ring, rgba(0,0,0,.12)), inset 0 0 0 1px var(--eq-inner-border, rgba(255,255,255,.06));
+    }
+
+    /* VERTICAL BANDS – center the skinny track and the circular thumb over it (WebKit) */
+    .eq-band input[type="range"]::-webkit-slider-runnable-track{
+      background: linear-gradient(180deg, var(--eq-accent1), var(--eq-accent2)) border-box;
+      width: var(--eq-band-track-w, 10px);
+      height: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--eq-soft-stroke, rgba(255,255,255,.14));
+      box-shadow: inset 0 0 0 1px var(--eq-inner-border, rgba(255,255,255,.06)), 0 1px 10px rgba(0,0,0,.35);
+      margin: 0 auto; /* center the track within the column */
+    }
+    .eq-band input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance: none;
+      appearance: none;
+      width: var(--eq-thumb-size, 18px);
+      height: var(--eq-thumb-size, 18px);
+      border-radius: 50%;
+      background: radial-gradient(120% 120% at 30% 25%, var(--eq-thumb1, #eef7ff), var(--eq-thumb2, #d9ebff));
+      border: 1px solid rgba(255,255,255,.55);
+      box-shadow: 0 2px 8px rgba(0,0,0,.45), 0 0 0 3px var(--eq-accent-ring, rgba(0,0,0,.12));
+      transition: transform .12s, box-shadow .12s, filter .12s;
+      /* Precisely center thumb over narrow track */
+      margin: 0; /* reset any margins */
+      transform: translateX(calc((var(--eq-thumb-size, 18px) - var(--eq-band-track-w, 10px)) / -2));
+    }
+
+    /* Minimal icon button styling (kept here so you don’t have to touch eq.css) */
+    .icon-btn{
+      --size: 36px;
+      width: var(--size); height: var(--size);
+      display: grid; place-items: center;
+      border-radius: 10px;
+      border: 1px solid var(--eq-border, rgba(255,255,255,.16));
+      background: rgba(255,255,255,.06);
+      color: var(--eq-text, #e8eef7);
+      cursor: pointer;
+      line-height: 1;
+      transition: transform .12s, filter .12s, box-shadow .12s, border-color .12s, background .12s;
+      box-shadow: inset 0 0 0 1px var(--eq-inner-border, rgba(255,255,255,.06)), 0 4px 12px rgba(0,0,0,.35);
+    }
+    .icon-btn > *{ display:block; line-height:1; }
+    .icon-btn:hover{
+      transform: translateY(-1px);
+      border-color: var(--eq-accent-focus, rgba(120,200,255,.45));
+      background: color-mix(in srgb, var(--eq-accent1, #5fa0ff) 10%, transparent);
+      box-shadow: 0 8px 16px rgba(0,0,0,.45);
+    }
+    .icon-btn:active{ transform: translateY(0); }
+    .icon-btn.ghost{ background: transparent; }
+    .icon-btn.danger{
+      border-color: var(--eq-danger, rgba(255,80,80,.35));
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--eq-danger, rgba(255,80,80,.35)) 34%, transparent), inset 0 0 0 1px var(--eq-inner-border, rgba(255,255,255,.06));
+    }
+    .icon-btn .material-icons{ font-size: 20px; }
+  </style>
+
+  <!-- Layout helpers for navbar spacing, centered editor button, and visualizer placement -->
+  <style>
+    /* Push main content below fixed navbar; JS sets --navbar-h at runtime */
+    .container { padding-top: var(--navbar-h, 72px); }
+
+    /* Make the player a stacking context without clipping/height hacks */
+    .wrapper { position: relative; isolation: isolate; }
+
+    /* Canvas behind everything in .wrapper and doesn't affect layout */
+    #audio-visualizer{
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      display: block;
+      width: 100%;
+      height: 100%;
+      opacity: 1;
+      pointer-events: none;
+      background: #07090f; /* optional tint */
+    }
+
+    /* Controls row */
+    .controls { text-align: center; margin-bottom: 10px; }
+
+    /* Row that holds the knob (left) + editor button (right), LEFT-ALIGNED */
+    .vz-row{
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      width: 100%;
+    }
+
+    /* Visualizer Editor button */
+    #vz-open-editor.vz-fab{
+      --fab-size: 64px;
+      width: var(--fab-size);
+      height: var(--fab-size);
+      display: grid !important;
+      place-items: center;
+      border-radius: 50%;
+      padding: 0;
+      margin: 0 !important;
+      position: static !important;
+      background: linear-gradient(145deg, rgba(50,60,70,0.7), rgba(20,25,30,0.7));
+      backdrop-filter: blur(8px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.45), inset 0 0 1px rgba(255,255,255,0.15);
+      transition: box-shadow .25s ease, transform .25s ease;
+      border: none;
+      cursor: pointer;
+    }
+    #vz-open-editor.vz-fab:hover{
+      box-shadow: 0 6px 16px rgba(0,200,255,0.55), inset 0 0 2px rgba(255,255,255,0.2);
+      transform: translateZ(0) scale(1.05);
+    }
+
+    /* Orb sizing inside the button */
+    #vz-open-editor .vz-orb{
+      width: 78%;
+      height: 78%;
+      display: block;
+      filter: drop-shadow(0 0 8px rgba(100,200,255,.35));
+    }
+
+    /* Modern Volume Knob */
+    .knob{
+      --size: 63px;
+      --track: rgba(255,255,255,.12);
+      --glow: rgba(98,178,255,.7);
+      --fillA: #5ad1ff;
+      --fillB: #a97aff;
+
+      width: var(--size);
+      height: var(--size);
+      border: none;
+      padding: 0;
+      border-radius: 50%;
+      background: radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08);
+      cursor: pointer;
+      position: relative;
+      display: grid;
+      place-items: center;
+      color: #eaeaea;
+    }
+    .knob:focus-visible{ outline: 2px solid rgba(100,200,255,.6); outline-offset: 3px; border-radius: 12px; }
+
+    .knob svg{ width: 86%; height: 86%; display:block; }
+    .knob .track{ stroke: var(--track); stroke-width: 8; fill: none; }
+    .knob .arc{ stroke: url(#volGradient); stroke-width: 8; stroke-linecap: round; fill: none; filter: drop-shadow(0 0 6px var(--glow)); }
+    .knob .handle{ fill: #dff2ff; filter: drop-shadow(0 0 6px var(--glow)); }
+
+    .knob .label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 4px rgba(0,0,0,0.6);
+  user-select: none;
+  pointer-events: none;
+}
+
+    /* Desktop centered editor panel default (your editor CSS expects this) */
+    @media (min-width:900px){
+      #vz-panel{ left:50%; top:50%; transform:translate(-50%,-50%); inset:auto; }
+    }
+    /* Stationary, wavy orb animation */
+    @keyframes dash-wave {
+      0%   { stroke-dasharray: 10 14; stroke-dashoffset: 0;   }
+      50%  { stroke-dasharray: 18 14; stroke-dashoffset: -10; }
+      100% { stroke-dasharray: 10 14; stroke-dashoffset: 0;   }
+    }
+    @keyframes dash-wave-2 {
+      0%   { stroke-dasharray: 8 10;  stroke-dashoffset: 0;   }
+      50%  { stroke-dasharray: 14 10; stroke-dashoffset: -8;  }
+      100% { stroke-dasharray: 8 10;  stroke-dashoffset: 0;   }
+    }
+
+    /* Keep transform math stable for the SVG (no spinning applied) */
+    #vz-open-editor .vz-orb g { transform-box: fill-box; transform-origin: 24px 24px; }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .vz-orb .no-reduce{ animation: none !important; }
+    }
+
+    /* Ensure SVG transform math is consistent across browsers */
+    #vz-open-editor .vz-orb g { transform-box: fill-box; transform-origin: 24px 24px; }
+    @media (prefers-reduced-motion: reduce){
+      .vz-orb .no-reduce{ animation: none !important; }
+    }
+    /* Lower only these buttons in stacking order */
+    #volume-knob,
+    #vz-open-editor,
+    #open-eq {
+      position: relative;
+      z-index: 1 !important; /* Low value so modals always go on top */
+    }
+    /* Make sure the bar can host absolutely positioned effects */
+.top-bar{ position: relative; }
+
+/* Wrap target logo image with a helper class (or add the class to your <img>) */
+.top-bar img[alt="G73 Logo"]{ position: relative; z-index: 1; }
+
+/* Soft animated glow behind the logo */
+.top-bar .g73-glow::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  transform: translate(-50%, -50%);
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  pointer-events:none;
+  background:
+    radial-gradient(60% 60% at 50% 50%,
+      color-mix(in srgb, var(--app-primary, #5fa0ff) 55%, transparent) 0%,
+      color-mix(in srgb, var(--app-accent,  #b478ff) 45%, transparent) 45%,
+      transparent 70%);
+  filter: blur(12px);
+  opacity:.65;
+  animation: g73Glow 4.6s ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes g73Glow{
+  0%,100%{ transform:translate(-50%,-50%) scale(0.95); opacity:.55; filter: blur(12px); }
+  50%    { transform:translate(-50%,-50%) scale(1.05); opacity:.85; filter: blur(16px); }
+}
+@media (prefers-reduced-motion: reduce){
+  .top-bar .g73-glow::after{ animation:none; }
+}
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <span class="menu-icon" id="menuIcon" onclick="toggleMenu()">☰</span>
+    <span class="navbar-title">G Jordan's Official Webpage</span>
+    <span id="account-btn" onclick="toggleAuthModal()"><i class="material-icons">account_circle</i></span>
+    <div class="menu" id="menu">
+      <a href="#">Music</a>
+      <a href="player.html">Videos</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+      <a href="#" onclick="showThemeModal()">Page Theme</a>
+    </div>
+  </div>
+
+  <div id="auth-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAuthModal()">&times;</span>
+      <h2>Sign Up / Login</h2>
+      <input type="email" id="modal-email" placeholder="Email" />
+      <div style="position: relative;">
+        <input type="password" id="modal-password" placeholder="Password" />
+        <span id="toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;">
+          <i class="material-icons" id="toggle-icon">visibility</i>
+        </span>
+      </div>
+      <div id="password-requirements" style="text-align: left; font-size: 13px; color: gold; margin-top: 10px;">
+        <p id="length-check">• At least 8 characters</p>
+        <p id="upper-check">• At least 1 uppercase letter</p>
+        <p id="lower-check">• At least 1 lowercase letter</p>
+        <p id="number-check">• At least 1 number</p>
+      </div>
+      <div>
+        <button onclick="modalSignUp()">Sign Up</button>
+        <button onclick="modalLogin()">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="theme-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="saveTheme(); closeThemeModal()">&times;</span>
+      <h2>Customize Your Vibe</h2>
+      <div class="color-picker-group">
+        <label>Main Theme Color</label>
+        <div class="color-preview"><input type="color" id="mainThemeColor" /></div>
+        <label>Accent Color</label>
+        <div class="color-preview"><input type="color" id="accentColorPicker" /></div>
+        <label>Text Color</label>
+        <div class="color-preview"><input type="color" id="textColorPicker" /></div>
+        <label>Text Background</label>
+        <div class="color-preview"><input type="color" id="textBgColorPicker" /></div>
+        <label>Border Color</label>
+        <div class="color-preview"><input type="color" id="borderColorPicker" /></div>
+        <label>Artist Name Color</label>
+        <div class="color-preview"><input type="color" id="artistColorPicker" /></div>
+        <label>Like Button Color</label>
+        <div class="color-preview"><input type="color" id="likeColorPicker" /></div>
+        <label>Dislike Button Color</label>
+        <div class="color-preview"><input type="color" id="dislikeColorPicker" /></div>
+        <label>Download Button Color</label>
+        <div class="color-preview"><input type="color" id="downloadColorPicker" /></div>
+      </div>
+      <div class="button-group">
+        <button onclick="saveTheme()"><i class="material-icons">check_circle</i> Apply Theme</button>
+        <button onclick="resetTheme()"><i class="material-icons">refresh</i> Reset to Default</button>
+        <button onclick="exportTheme()"><i class="material-icons">file_download</i> Export Settings</button>
+        <input type="file" id="importThemeFile" accept=".json" style="display: none;" onchange="importThemeFromFile(this)">
+        <button onclick="document.getElementById('importThemeFile').click()"><i class="material-icons">upload_file</i> Import Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div class="container">
+    <header>
+      <div class="wrapper">
+        <!-- VISUALIZER CANVAS AS BACKGROUND LAYER -->
+        <canvas id="audio-visualizer"></canvas>
+
+        <div class="top-bar">
+          <i class="material-icons"></i>
+          <div class="top-bar g73-glow">
+  <i class="material-icons"></i>
+  <img src="G73.png" alt="G73 Logo" style="height: 40px;" />
+  <i class="material-icons"></i>
+</div>
+          <i class="material-icons"></i>
+        </div>
+
+        <div class="img-area">
+          <img src="" alt="Album Art" />
+        </div>
+
+        <div class="song-details">
+          <p class="name"></p>
+          <p class="artist"></p>
+          <div id="reaction-buttons">
+            <button class="like-btn" onclick="animateButton(this); likeSongFirebase(currentSongId)"><i class="material-icons">thumb_up</i></button>
+            <button class="dislike-btn" onclick="animateButton(this); dislikeSongFirebase(currentSongId)"><i class="material-icons">thumb_down</i></button>
+            <button class="download-btn" onclick="animateButton(this); downloadSong()"><i class="material-icons">file_download</i></button>
+          </div>
+          <div id="song-stats">
+            <span id="stats-plays" class="stats-custom">Plays 0</span>
+            <span id="stats-likes">Likes 0</span>
+            <span id="stats-dislikes">Dislikes 0</span>
+            <span id="stats-downloads">Downloads 0</span>
+          </div>
+        </div>
+
+        <div class="progress-area">
+          <div class="progress-bar"></div>
+          <div class="song-timer">
+            <span class="current-time">0:00</span>
+            <span class="max-duration">0:00</span>
+          </div>
+          <audio id="main-audio" src=""></audio>
+        </div>
+
+        <!-- Player Controls -->
+        <div class="controls">
+          <i id="repeat-plist" class="material-icons" title="Playlist looped">repeat</i>
+          <i id="prev" class="material-icons">skip_previous</i>
+          <div class="play-pause"><i class="material-icons play">play_arrow</i></div>
+          <i id="next" class="material-icons">skip_next</i>
+          <i id="more-music" class="material-icons">queue_music</i>
+        </div>
+
+        <!-- Volume Knob + Visualizer Editor (LEFT aligned) -->
+        <div class="vz-row">
+          <!-- Volume Knob -->
+          <button id="volume-knob" class="knob" role="slider" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="100%" title="Volume">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <defs>
+                <linearGradient id="volGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%"  stop-color="#5ad1ff"/>
+                  <stop offset="100%" stop-color="#a97aff"/>
+                </linearGradient>
+              </defs>
+              <!-- background ring -->
+              <circle class="track" cx="50" cy="50" r="34"></circle>
+              <!-- active arc; d is set in JS -->
+              <path class="arc" d="" />
+              <!-- handle dot; positioned in JS -->
+              <circle class="handle" cx="50" cy="16" r="3.8"></circle>
+            </svg>
+            <span class="label" id="knob-label">100%</span>
+          </button>
+
+          <!-- Visualizer Editor Button -->
+          <button id="vz-open-editor" class="vz-fab" aria-haspopup="dialog" aria-controls="vz-panel" title="Open Visualizer Editor" aria-label="Open Visualizer Editor"></button>
+
+          <!-- NEW: Equalizer Button -->
+          <button id="open-eq" class="eq-fab" title="Open Equalizer" aria-haspopup="dialog" aria-controls="eq-modal">
+            <span class="material-icons" aria-hidden="true">equalizer</span>
+          </button>
+        </div>
+
+        <!-- Editor root (modal attaches here) -->
+        <div id="vz-editor-root"></div>
+
+        <!-- Equalizer Modal -->
+        <div id="eq-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Audio Equalizer">
+          <div class="modal-content eq-content simple">
+            <!-- Header -->
+            <div class="eq-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
+              <div class="eq-title" style="display:flex;align-items:center;gap:8px;">
+                <span class="material-icons" aria-hidden="true">equalizer</span>
+                <h3 style="margin:0;">Equalizer</h3>
+              </div>
+
+              <div class="eq-toggle" style="display:flex;align-items:center;gap:10px;">
+                <label class="switch">
+                  <input type="checkbox" id="eq-enable" checked />
+                  <span class="slider"></span>
+                </label>
+                <span class="toggle-label">Enabled</span>
+              </div>
+
+              <button class="icon-btn ghost" type="button" data-eq-close aria-label="Close equalizer" title="Close">
+                <span class="material-icons" aria-hidden="true">close</span>
+              </button>
+            </div>
+
+            <!-- Controls row -->
+            <div class="eq-controls" style="display:grid;gap:12px;">
+              <div class="preset-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label for="eq-preset">Preset</label>
+                <select id="eq-preset"></select>
+
+                <!-- Save preset -->
+                <button class="icon-btn" id="eq-save-preset" type="button" aria-label="Save preset" title="Save preset">
+                  <span class="material-icons" aria-hidden="true">bookmark_add</span>
+                </button>
+                <!-- Delete preset -->
+                <button class="icon-btn danger" id="eq-delete-preset" type="button" aria-label="Delete preset" title="Delete preset">
+                  <span class="material-icons" aria-hidden="true">delete</span>
+                </button>
+              </div>
+
+              <div class="preamp-row" style="display:grid;grid-template-columns:1fr 170px 70px;gap:12px;align-items:center;">
+                <label for="eq-preamp">Preamp</label>
+                <input id="eq-preamp" type="range" min="-12" max="12" step="0.1" value="0" />
+                <output id="eq-preamp-out">0 dB</output>
+              </div>
+            </div>
+
+            <!-- Bands -->
+            <div class="eq-bands" id="eq-bands"><!-- JS fills sliders --></div>
+
+            <!-- Footer -->
+            <div class="eq-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;">
+              <div class="mode-toggle" style="display:flex;align-items:center;gap:8px;">
+                <button class="icon-btn ghost" id="eq-mode" type="button" aria-pressed="true" aria-label="Toggle Simple/Pro" title="Toggle Simple/Pro">
+                  <span class="material-icons" aria-hidden="true">tune</span>
+                </button>
+                <span class="mode-hint">Tap to switch Simple/Pro (10-band)</span>
+              </div>
+              <div class="footer-actions" style="display:flex;align-items:center;gap:8px;">
+                <button class="icon-btn ghost" type="button" data-eq-close aria-label="Close" title="Close">
+                  <span class="material-icons" aria-hidden="true">close</span>
+                </button>
+                <button class="icon-btn" type="button" id="eq-reset" aria-label="Reset" title="Reset">
+                  <span class="material-icons" aria-hidden="true">restore</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Music list -->
+        <div class="music-list">
+          <div class="header">
+            <div class="row">
+              <i class="list material-icons">queue_music</i>
+              <span>Music list</span>
+            </div>
+            <i id="close" class="material-icons">close</i>
+          </div>
+          <ul></ul>
+        </div>
+      </div>
+    </header>
+
+    <footer>
+      <div class="social-links">
+        <a href="https://facebook.com" target="_blank"><img src="https://img.icons8.com/color/50/facebook.png" alt="Facebook" /></a>
+        <a href="https://instagram.com" target="_blank"><img src="https://img.icons8.com/color/50/instagram-new.png" alt="Instagram" /></a>
+        <a href="https://youtube.com" target="_blank"><img src="https://img.icons8.com/color/50/youtube-play.png" alt="YouTube" /></a>
+        <a href="https://tiktok.com" target="_blank"><img src="https://img.icons8.com/color/50/tiktok.png" alt="TikTok" /></a>
+      </div>
+      <div class="branding-footer">
+        <p>&copy; 2025 G Jordan &nbsp;|&nbsp; <span class="tm">G73&trade; LLC</span></p>
+      </div>
+    </footer>
+  </div>
+
+  <script>window.__VZ_EMBEDDED = true;</script>
+
+  <!-- External Scripts (order matters) -->
+  <script src="js/music-list.js"></script>
+
+  <!-- Firebase (modules) -->
+  <script type="module" src="js/firebase/firebase-init.js"></script>
+  <script type="module" src="js/firebase/firebase-stats.js"></script>
+  <script type="module" src="js/firebase/firebase-auth.js"></script>
+
+  <!-- Theme (plain) -->
+  <script src="js/theme/theme-init.js"></script>
+  <script src="js/theme/theme-preview.js"></script>
+  <script src="js/theme/theme-save.js"></script>
+  <script src="js/theme/theme-sync.js"></script>
+
+  <!-- Player (plain) -->
+  <script src="js/player/player-core.js"></script>
+  <script src="js/player/ui-events.js"></script>
+  <script src="js/player/visualizer.js"></script>
+  <script src="js/player/visualizer-editor.js"></script>
+
+  <!-- NEW: Equalizer logic -->
+  <script src="js/player/equalizer.js"></script>
+<script>
+/* Simple/Pro toggle that layers on top of equalizer.js (no edits to your file) */
+(function(){
+  const modeBtn   = document.getElementById('eq-mode');
+  const bandsWrap = document.getElementById('eq-bands');
+  const preamp    = document.getElementById('eq-preamp');
+  if (!modeBtn || !bandsWrap || !window.equalizerAPI) return;
+
+  const STORE_KEY = 'eqMode.v1';
+
+  // Group the 10 pro bands into 5 "simple" bands
+  // Indices correspond to the freqs you used: [60,170,310,600,1000,3000,6000,12000,14000,16000]
+  const GROUPS = [
+    { name: 'Low',      idx: [0,1] },        // 60, 170
+    { name: 'Low-Mid',  idx: [2,3] },        // 310, 600
+    { name: 'Mid',      idx: [4,5] },        // 1k, 3k
+    { name: 'High-Mid', idx: [6,7] },        // 6k, 12k
+    { name: 'High',     idx: [8,9] },        // 14k, 16k
+  ];
+
+  // Build the 5 simple sliders once and keep them hidden when in Pro mode
+  const simpleWrap = document.createElement('div');
+  simpleWrap.className = 'eq-bands simple-bands';
+  simpleWrap.style.display = 'none';
+
+  const simpleSliders = []; // {input, out, group}
+  GROUPS.forEach(group => {
+    const wrap = document.createElement('div');
+    wrap.className = 'eq-band';
+
+    const label = document.createElement('label');
+    label.textContent = group.name;
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = -12;
+    input.max =  12;
+    input.step = 0.1;
+    input.value = 0;
+
+    const out = document.createElement('output');
+    out.textContent = '0 dB';
+
+    input.addEventListener('input', () => {
+      const v = parseFloat(input.value);
+      // Push simple value to all pro bands in this group
+      group.idx.forEach(i => window.equalizerAPI.setBand(i, v));
+      out.textContent = (v>0?'+':'') + v.toFixed(1) + ' dB';
+      // Persist full EQ state (equalizerAPI already persists on setBand)
+      persistMode(currentMode);
+    });
+
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    wrap.appendChild(out);
+    simpleWrap.appendChild(wrap);
+
+    simpleSliders.push({ input, out, group });
+  });
+
+  // Insert the simple block right before the pro 10-band block
+  bandsWrap.parentNode.insertBefore(simpleWrap, bandsWrap);
+
+  function avg(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+
+  function syncSimpleFromPro(){
+    // Read current pro values and set each simple slider to the average of its group
+    const st = window.equalizerAPI.getSettings();
+    if (!st || !Array.isArray(st.bands)) return;
+    simpleSliders.forEach(({input, out, group})=>{
+      const values = group.idx.map(i => st.bands[i] ?? 0);
+      const v = avg(values);
+      input.value = v;
+      out.textContent = (v>0?'+':'') + v.toFixed(1) + ' dB';
+    });
+  }
+
+  function syncProFromSimple(){
+    // Push each simple slider value to its grouped pro bands
+    simpleSliders.forEach(({input, group})=>{
+      const v = parseFloat(input.value);
+      group.idx.forEach(i => window.equalizerAPI.setBand(i, v));
+    });
+  }
+
+  function applyMode(mode){
+    // Visual toggle
+    if (mode === 'simple'){
+      simpleWrap.style.display = '';
+      bandsWrap.style.display  = 'none';
+      modeBtn.setAttribute('aria-pressed', 'true');
+      modeBtn.title = 'Switch to Pro';
+      // Initialize simple sliders from current pro values
+      syncSimpleFromPro();
+    }else{
+      simpleWrap.style.display = 'none';
+      bandsWrap.style.display  = '';
+      modeBtn.setAttribute('aria-pressed', 'false');
+      modeBtn.title = 'Switch to Simple';
+      // When leaving simple, push simple values to pro so it "sticks"
+      syncProFromSimple();
+    }
+  }
+
+  function persistMode(mode){
+    try{ localStorage.setItem(STORE_KEY, mode); }catch{}
+  }
+  function restoreMode(){
+    try{
+      const m = localStorage.getItem(STORE_KEY);
+      return (m === 'simple' || m === 'pro') ? m : 'simple'; // default to simple UI
+    }catch{ return 'simple'; }
+  }
+
+  let currentMode = restoreMode();
+  applyMode(currentMode);
+
+  modeBtn.addEventListener('click', ()=>{
+    currentMode = (currentMode === 'simple') ? 'pro' : 'simple';
+    applyMode(currentMode);
+    persistMode(currentMode);
+  });
+
+  // If user changes preset or resets EQ in Pro while Simple is active later,
+  // keep the simple UI in sync the next time it’s shown.
+  // Hook some common events:
+  document.getElementById('eq-preset')?.addEventListener('change', ()=>{
+    if (currentMode === 'simple') syncSimpleFromPro();
+  });
+  document.getElementById('eq-reset')?.addEventListener('click', ()=>{
+    setTimeout(()=>{ if (currentMode === 'simple') syncSimpleFromPro(); }, 0);
+  });
+  document.getElementById('eq-enable')?.addEventListener('change', ()=>{
+    if (currentMode === 'simple') syncSimpleFromPro();
+  });
+
+  // Also re-sync when the modal opens (in case values changed while closed)
+  (function watchModal(){
+    const modal = document.getElementById('eq-modal');
+    if (!modal) return;
+    const mo = new MutationObserver(()=>{
+      const open = modal.getAttribute('aria-hidden') === 'false';
+      if (open && currentMode === 'simple') syncSimpleFromPro();
+    });
+    mo.observe(modal, { attributes:true, attributeFilter:['aria-hidden'] });
+  })();
+})();
+</script>
+  <!-- UI (plain) -->
+  <script src="js/ui/navbar.js"></script>
+  <script src="js/ui/modals.js"></script>
+  <script src="js/ui/toast.js"></script>
+  <script src="js/ui/password-visibility.js"></script>
+  <script src="js/ui/password-check.js"></script>
+
+  <!-- Main boot (plain) -->
+  <script src="js/main.js"></script>
+
+  <!-- Safety boot in case main.js doesn't start it -->
+  <script>
+    if (typeof setupVisualizer === "function") { setupVisualizer(); }
+  </script>
+
+  <!-- Navbar height → CSS var (for container padding) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const nav = document.querySelector('.navbar');
+      if (nav) {
+        const navHeight = nav.getBoundingClientRect().height;
+        document.documentElement.style.setProperty('--navbar-h', navHeight + 'px');
+      }
+    });
+  </script>
+
+  <!-- Build the animated orb inside #vz-open-editor -->
+  <script>
+  (function(){
+    const btn = document.getElementById('vz-open-editor');
+    if(!btn) return;
+
+    btn.innerHTML = `
+      <svg class="vz-orb" viewBox="0 0 48 48" preserveAspectRatio="xMidYMid meet" role="img" aria-hidden="true">
+        <defs>
+          <linearGradient id="vz-g1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stop-color="#4ad6ff"/>
+            <stop offset="50%" stop-color="#7aa6ff"/>
+            <stop offset="100%" stop-color="#b07bff"/>
+            <animateTransform attributeName="gradientTransform" type="rotate" from="0 0.5 0.5" to="360 0.5 0.5" dur="14s" repeatCount="indefinite"/>
+          </linearGradient>
+          <linearGradient id="vz-g2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stop-color="#59ffc8"/>
+            <stop offset="50%" stop-color="#66b3ff"/>
+            <stop offset="100%" stop-color="#ff8af5"/>
+            <animateTransform attributeName="gradientTransform" type="rotate" from="360 0.5 0.5" to="0 0.5 0.5" dur="18s" repeatCount="indefinite"/>
+          </linearGradient>
+          <filter id="vz-softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <g class="no-reduce" style="transform-origin:24px 24px; animation: orb-spin 7.5s linear infinite, orb-breathe 5.6s ease-in-out infinite;">
+          <g filter="url(#vz-softGlow)">
+            <circle cx="24" cy="24" r="13.2" fill="none" stroke="url(#vz-g1)"
+              stroke-width="2.6" stroke-linecap="round" stroke-dasharray="12 10" pathLength="100"
+              class="no-reduce" style="animation: dash-flow 3.2s linear infinite;" />
+          </g>
+          <g style="transform-origin:24px 24px; animation: orb-spin 11s linear reverse infinite;">
+            <circle cx="24" cy="24" r="9.4" fill="none" stroke="url(#vz-g2)"
+              stroke-width="2.2" stroke-linecap="round" pathLength="100"
+              class="no-reduce" style="animation: dash-flow 4.1s linear infinite;" />
+          </g>
+          <circle cx="24" cy="24" r="2.4" fill="#a7d8ff" fill-opacity=".6"/>
+        </g>
+      </svg>
+    `;
+
+    btn.setAttribute('role', 'button');
+    btn.tabIndex = 0;
+    btn.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        btn.click();
+      }
+    }, {passive:true});
+  })();
+  </script>
+
+  <!-- Volume Knob logic -->
+  <script>
+  (function(){
+    const knob = document.getElementById('volume-knob');
+    const label = document.getElementById('knob-label');
+    const audio = document.getElementById('main-audio');
+    if (!knob || !label || !audio) return;
+
+    const svg   = knob.querySelector('svg');
+    const arc   = knob.querySelector('.arc');
+    const handle= knob.querySelector('.handle');
+
+    const R = 34;
+    const CX = 50, CY = 50;
+    const MIN_ANG = -135;
+    const MAX_ANG =  135;
+
+    const VOL_KEY = 'playerVolume';
+
+    const clamp = (n, a, b)=> Math.max(a, Math.min(b, n));
+
+    function setArcPath(fromDeg, toDeg){
+      const p2c = (cx, cy, r, deg)=>{
+        const rad = (deg-90) * Math.PI/180;
+        return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
+      };
+      const start = p2c(CX, CY, R, fromDeg);
+      const end   = p2c(CX, CY, R, toDeg);
+      let sweep = toDeg - fromDeg;
+      if (sweep < 0) sweep += 360;
+      const largeArc = sweep >= 180 ? 1 : 0;
+      const d = `M ${start.x} ${start.y} A ${R} ${R} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+      arc.setAttribute('d', d);
+    }
+
+    function angleForVolume(v){ return MIN_ANG + (MAX_ANG - MIN_ANG) * v; }
+    function volumeForAngle(deg){ return clamp((deg - MIN_ANG) / (MAX_ANG - MIN_ANG), 0, 1); }
+
+    function updateVisual(v){
+      const vol = clamp(v, 0, 1);
+      const deg = angleForVolume(vol);
+
+      setArcPath(MIN_ANG, deg);
+
+      const rad = (deg-90) * Math.PI/180;
+      const hx = CX + R * Math.cos(rad);
+      const hy = CY + R * Math.sin(rad);
+      handle.setAttribute('cx', hx);
+      handle.setAttribute('cy', hy);
+
+      const pct = Math.round(vol*100);
+      label.textContent = pct + '%';
+      knob.setAttribute('aria-valuenow', pct);
+      knob.setAttribute('aria-valuetext', pct + '%');
+    }
+
+    function setVolume(v, fromUser=false){
+      v = clamp(v, 0, 1);
+      audio.volume = v;
+      updateVisual(v);
+      if (fromUser) {
+        try { localStorage.setItem(VOL_KEY, String(v)); } catch {}
+      }
+    }
+
+    let initial = 1;
+    try {
+      const saved = localStorage.getItem(VOL_KEY);
+      if (saved != null && !isNaN(saved)) initial = clamp(parseFloat(saved), 0, 1);
+    } catch{}
+    setVolume(initial, false);
+
+    audio.addEventListener('volumechange', ()=> updateVisual(audio.volume), {passive:true});
+
+    let dragging = false;
+    function getAngleFromEvent(e){
+      const rect = svg.getBoundingClientRect();
+      const cx = rect.left + rect.width/2;
+      const cy = rect.top  + rect.height/2;
+      const x = (e.clientX != null) ? e.clientX : (e.touches?.[0]?.clientX || 0);
+      const y = (e.clientY != null) ? e.clientY : (e.touches?.[0]?.clientY || 0);
+      const dx = x - cx;
+      const dy = y - cy;
+      let deg = Math.atan2(dy, dx) * 180/Math.PI + 90; // 0° at top
+      if (deg > 180) deg -= 360;                        // normalize
+      deg = clamp(deg, MIN_ANG, MAX_ANG);               // clamp to arc
+      return deg;
+    }
+
+    const onDown = (e)=>{ dragging = true; knob.focus(); e.preventDefault(); };
+    const onMove = (e)=>{
+      if (!dragging) return;
+      const deg = getAngleFromEvent(e);
+      setVolume(volumeForAngle(deg), true);
+      e.preventDefault();
+    };
+    const onUp = ()=>{ dragging = false; };
+
+    knob.addEventListener('pointerdown', onDown, {passive:false});
+    window.addEventListener('pointermove', onMove, {passive:false});
+    window.addEventListener('pointerup', onUp, {passive:true});
+
+    knob.addEventListener('touchstart', onDown, {passive:false});
+    window.addEventListener('touchmove', onMove, {passive:false});
+    window.addEventListener('touchend', onUp, {passive:true});
+
+    knob.addEventListener('wheel', (e)=>{
+      e.preventDefault();
+      const step = (e.deltaY < 0 ? 0.04 : -0.04);
+      setVolume(audio.volume + step, true);
+    }, {passive:false});
+
+    knob.addEventListener('keydown', (e)=>{
+      let v = audio.volume;
+      const fine = 0.02, coarse = 0.1;
+      switch(e.key){
+        case 'ArrowRight':
+        case 'ArrowUp':   setVolume(v + fine, true); e.preventDefault(); break;
+        case 'ArrowLeft':
+        case 'ArrowDown': setVolume(v - fine, true); e.preventDefault(); break;
+        case 'PageUp':    setVolume(v + coarse, true); e.preventDefault(); break;
+        case 'PageDown':  setVolume(v - coarse, true); e.preventDefault(); break;
+        case 'Home':      setVolume(0, true); e.preventDefault(); break;
+        case 'End':       setVolume(1, true); e.preventDefault(); break;
+        case 'm':
+        case 'M':
+          if (audio.volume > 0){ knob._lastVol = audio.volume; setVolume(0, true); }
+          else setVolume(Math.max(0, Math.min(knob._lastVol || 0.6, 1)), true);
+          e.preventDefault();
+          break;
+      }
+    });
+
+  })();
+  </script>
+
+  <script>
+  (function(){
+    const btn = document.getElementById('vz-open-editor');
+    if(!btn) return;
+
+    btn.innerHTML = `
+      <svg class="vz-orb" viewBox="0 0 48 48" role="img" aria-hidden="true">
+        <defs>
+          <linearGradient id="vz-g1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stop-color="#4ad6ff"/>
+            <stop offset="100%" stop-color="#b07bff"/>
+          </linearGradient>
+          <linearGradient id="vz-g2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stop-color="#59ffc8"/>
+            <stop offset="100%" stop-color="#ff8af5"/>
+          </linearGradient>
+          <filter id="vz-softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Stationary group; only dash properties animate for “wavy” feel -->
+        <g class="no-reduce">
+          <!-- Outer ring (gentle wave) -->
+          <g filter="url(#vz-softGlow)">
+            <circle cx="24" cy="24" r="13.2" fill="none" stroke="url(#vz-g1)"
+              stroke-width="2.6" stroke-linecap="round" pathLength="100"
+              style="animation: dash-wave 2.8s ease-in-out infinite;" />
+          </g>
+          <!-- Inner ring (counter-phase wave) -->
+          <g>
+            <circle cx="24" cy="24" r="9.4" fill="none" stroke="url(#vz-g2)"
+              stroke-width="2.2" stroke-linecap="round" pathLength="100"
+              style="animation: dash-wave-2 3.4s ease-in-out infinite;" />
+          </g>
+          <!-- Soft center dot -->
+          <circle cx="24" cy="24" r="2.6" fill="#a7d8ff" fill-opacity=".65"/>
+        </g>
+      </svg>
+    `;
+
+    // Keep it keyboard-accessible
+    btn.setAttribute('role', 'button');
+    btn.tabIndex = 0;
+    btn.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        btn.click();
+      }
+    }, {passive:true});
+  })();
+  </script>
+
+  <!-- EQ modal opener/closer -->
+  <script>
+  (function () {
+    const openBtn = document.getElementById('open-eq');
+    const modal   = document.getElementById('eq-modal');
+
+    if (!openBtn || !modal) {
+      console.warn('[EQ] Missing #open-eq or #eq-modal in DOM.');
+      return;
+    }
+
+    function showEQ() {
+      modal.removeAttribute('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+
+      const ctx = window.audioCtx || window.AudioContextInstance;
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume?.();
+      }
+    }
+
+    function hideEQ() {
+      modal.setAttribute('hidden', '');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    openBtn.addEventListener('click', (e) => { e.preventDefault(); showEQ(); });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hasAttribute('hidden')) hideEQ();
+    });
+
+    // backdrop close (click outside content)
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) hideEQ();
+    });
+
+    modal.querySelectorAll('[data-eq-close]').forEach(btn => {
+      btn.addEventListener('click', hideEQ);
+    });
+
+    window.__EQModal = { showEQ, hideEQ };
+  })();
+  </script>
+
+  <!-- Theme → EQ hook (update these when your site theme changes) -->
+  <script>
+    // Call this whenever your site theme changes.
+    // Example: updateEQTheme('#ff3366', '#ffd300')
+    function updateEQTheme(primary, accent){
+      if (primary) document.documentElement.style.setProperty('--app-primary', primary);
+      if (accent)  document.documentElement.style.setProperty('--app-accent',  accent);
+      // eq.css derives --eq-accent1/2 from these instantly.
+    }
+
+    // Optional: listen for a custom event your app fires
+    window.addEventListener('theme:changed', (e)=>{
+      const { primary, accent } = e.detail || {};
+      updateEQTheme(primary, accent);
+    });
+  </script>
+  <script>
+/*!
+ * G73 Controls Theme Plugin v2.4 (stable on your v2.0)
+ * - Keeps all v2.3 features (progress + timers + gradient icons + portal menu)
+ * - Solid play/pause glyph (no more invisible over gradients)
+ * - Menu centered under the palette button (viewport-clamped)
+ * - EXACTLY 37 themes
+ */
+(function(){
+  const STORE_KEY = 'playerControlsTheme.v2.4';
+
+  // ---- Targets ----
+  const controls = document.querySelector('.controls');
+  const progress = document.querySelector('.progress-area');
+  const bar      = progress?.querySelector('.progress-bar');
+  const tCur     = progress?.querySelector('.current-time');
+  const tMax     = progress?.querySelector('.max-duration');
+  if (!controls) { console.warn('[ControlsThemePlugin] No .controls found.'); return; }
+  controls.setAttribute('data-ctl-theme','');
+  if (progress) progress.setAttribute('data-ctl-theme','');
+
+  // ---- CSS (scoped; beats main.css) ----
+  const css = `
+  .controls[data-ctl-theme]{
+    display:inline-flex; align-items:center; gap:12px; padding:10px;
+    border-radius:16px;
+    border:1px solid var(--ctl-border, rgba(255,255,255,.10)) !important;
+    background: var(--ctl-bg, rgba(13,17,23,.72)) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45) !important;
+  }
+
+  /* Gradient icons (all standard control glyphs)… */
+  .controls[data-ctl-theme] .material-icons{
+    background-image: var(--ctl-icon-gradient, linear-gradient(90deg,#ffffff,#ffffff)) !important;
+    -webkit-background-clip: text !important; background-clip: text !important;
+    -webkit-text-fill-color: transparent !important; color: transparent !important;
+    transition: filter .12s, transform .12s; user-select: none;
+  }
+  .controls[data-ctl-theme] i:hover{
+    filter: drop-shadow(0 0 6px var(--ctl-ring, rgba(120,200,255,.4))) !important;
+    transform: translateY(-1px);
+  }
+
+  /* …EXCEPT play/pause GLYPH: force solid high-contrast color so it's always visible */
+  .controls[data-ctl-theme] .play-pause .material-icons{
+    -webkit-text-fill-color: var(--pp-icon-color, #ffffff) !important;
+            color: var(--pp-icon-color, #ffffff) !important;
+    background-image: none !important;
+  }
+
+  /* Play/Pause chip */
+  .controls[data-ctl-theme] .play-pause{
+    position: relative !important;
+    display:flex; align-items:center; justify-content:center;
+    width:54px; height:54px; border-radius:50% !important;
+    background: var(--pp-outer, linear-gradient(135deg,#1d2230,#151820)) !important;
+    box-shadow: 0 0 5px var(--pp-glow, rgba(95,160,255,.45)) !important;
+    border: none !important; overflow: visible;
+  }
+  .controls[data-ctl-theme] .play-pause::before{
+    content:"";
+    position:absolute; inset:0; width:43px; height:43px; margin:auto; border-radius:50%;
+    background: var(--pp-inner, var(--ctl-icon-gradient, linear-gradient(90deg,#ffffff,#ffffff))) !important;
+    z-index: 0;
+  }
+  .controls[data-ctl-theme] .play-pause .material-icons{
+    position:absolute; width:43px; height:43px; line-height:43px; text-align:center; z-index: 1;
+  }
+
+  /* Progress area colorization (behavior untouched) */
+  .progress-area[data-ctl-theme]{ position:relative; background: var(--prog-bg, rgba(255,255,255,.10)) !important; border-radius: 50px !important; }
+  .progress-area[data-ctl-theme] .progress-bar{ background: var(--prog-fill, linear-gradient(90deg,#5ad1ff,#a97aff)) !important; }
+  .progress-area[data-ctl-theme] .song-timer{ display:flex; justify-content:space-between; margin-top:2px; color: var(--timer-color, #d5e6ff) !important; font-size:13px; }
+
+  /* Palette button */
+  .ctl-theme-btn{
+    width:40px; height:40px; border-radius: 14px !important;
+    border:1px solid var(--ctl-border, rgba(255,255,255,.1)) !important;
+    background: transparent !important; cursor:pointer; display:grid; place-items:center;
+  }
+  .ctl-theme-btn .material-icons{
+    background-image: var(--ctl-icon-gradient, linear-gradient(90deg,#ffffff,#ffffff)) !important;
+    -webkit-background-clip: text !important; background-clip: text !important;
+    -webkit-text-fill-color: transparent !important; color: transparent !important;
+  }
+  .ctl-theme-btn:hover{
+    background: color-mix(in srgb, var(--app-accent, #b478ff) 16%, transparent) !important;
+    box-shadow: 0 8px 18px rgba(0,0,0,.45) !important;
+  }
+
+  /* PORTAL MENU (centered under button; never affects layout) */
+  .ctl-theme-menu{
+    position: fixed;
+    min-width:260px; max-width:320px; max-height: 280px;
+    overflow:auto; overscroll-behavior: contain;
+    display:grid; gap:8px; padding:10px; border-radius:14px;
+    border:1px solid var(--ctl-border, rgba(255,255,255,.1)) !important;
+    background: color-mix(in srgb, #0b0f14 88%, transparent) !important;
+    box-shadow: 0 16px 44px rgba(0,0,0,.55) !important;
+    z-index: 99999;
+  }
+  .ctl-theme-menu[hidden]{ display:none !important; }
+  .theme-chip{
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    width:100%; border-radius:12px; cursor:pointer;
+    border:1px solid var(--ctl-border, rgba(255,255,255,.1)) !important;
+    background: rgba(255,255,255,.04) !important;
+    transition: transform .12s, border-color .12s;
+  }
+  .theme-chip:hover{ transform: translateY(-1px); border-color: var(--ctl-ring, rgba(100,200,255,.35)) !important; }
+  .theme-chip .swatch{
+    width:26px; height:26px; border-radius:50%;
+    border:1px solid rgba(255,255,255,.35);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
+    background-image: var(--chip-gradient, linear-gradient(90deg,#999,#bbb));
+  }
+  .theme-chip .text{ display:grid; gap:2px; }
+  .theme-chip .title{ color:#e8eef7; font-size:13px; }
+  .theme-chip .note{ color:#9fb2c7; font-size:11px; }
+  `;
+  const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+
+  // ---- EXACTLY 37 Presets ----
+  const T = [
+    {id:'neonGlass',      name:'Neon Glass',      note:'cyan ↔ violet',   v:{'--ctl-bg':'color-mix(in srgb,#0a1220 68%,transparent)','--ctl-icon-gradient':'linear-gradient(90deg,#54e0ff,#b37aff)','--ctl-ring':'rgba(120,220,255,.55)','--prog-fill':'linear-gradient(90deg,#54e0ff,#b37aff)','--prog-bg':'rgba(255,255,255,.10)','--timer-color':'#cfe7ff'}},
+    {id:'midnightMinimal',name:'Midnight Minimal',note:'cool steel',      v:{'--ctl-bg':'rgba(14,18,24,.72)','--ctl-icon-gradient':'linear-gradient(90deg,#a8bed3,#e8eef7)','--ctl-ring':'rgba(120,180,255,.35)','--prog-fill':'linear-gradient(90deg,#87b4ff,#bcd4ff)','--prog-bg':'rgba(255,255,255,.08)','--timer-color':'#a8bed3'}},
+    {id:'goldOnyx',       name:'Gold Onyx',       note:'lux glow',        v:{'--ctl-bg':'linear-gradient(180deg,#0b0c0f,#0f1116)','--ctl-icon-gradient':'linear-gradient(90deg,#c79c46,#ffde87)','--ctl-ring':'rgba(255,205,95,.42)','--prog-fill':'linear-gradient(90deg,#c79c46,#ffde87)','--prog-bg':'rgba(255,216,128,.12)','--timer-color':'#ffe5a8','--pp-icon-color':'#1d1406'}},
+    {id:'retroTape',      name:'Retro Tape',      note:'warm earth',      v:{'--ctl-bg':'linear-gradient(180deg,#191512,#241f1b)','--ctl-icon-gradient':'linear-gradient(90deg,#d38b5d,#ffe0a1)','--ctl-ring':'rgba(255,178,102,.35)','--prog-fill':'linear-gradient(90deg,#d38b5d,#ffe0a1)','--prog-bg':'rgba(255,231,191,.12)','--timer-color':'#ffe8c7'}},
+    {id:'warmSunset',     name:'Warm Sunset',     note:'coral → gold',    v:{'--ctl-bg':'linear-gradient(180deg,#1a1010,#10131e)','--ctl-icon-gradient':'linear-gradient(90deg,#ff8a66,#ffd36e)','--ctl-ring':'rgba(255,140,120,.45)','--prog-fill':'linear-gradient(90deg,#ff8a66,#ffd36e)','--prog-bg':'rgba(255,160,120,.12)','--timer-color':'#ffcaa8'}},
+    {id:'terminalMono',   name:'Terminal Mono',   note:'green beam',      v:{'--ctl-bg':'rgba(4,12,6,.85)','--ctl-icon-gradient':'linear-gradient(90deg,#38ff80,#b8ffc8)','--ctl-ring':'rgba(100,255,160,.35)','--prog-fill':'linear-gradient(90deg,#38ff80,#b8ffc8)','--prog-bg':'rgba(170,255,200,.08)','--timer-color':'#c8ffd6'}},
+    {id:'oceanic',        name:'Oceanic',         note:'sky fade',        v:{'--ctl-bg':'linear-gradient(180deg,#0a1420,#0e1d2b)','--ctl-icon-gradient':'linear-gradient(90deg,#78c7ff,#9be7ff)','--ctl-ring':'rgba(100,200,255,.42)','--prog-fill':'linear-gradient(90deg,#78c7ff,#9be7ff)','--prog-bg':'rgba(200,235,255,.12)','--timer-color':'#cfeaff'}},
+    {id:'cyberLime',      name:'Cyber Lime',      note:'neon lime',       v:{'--ctl-bg':'linear-gradient(180deg,#0b0f0b,#0f1710)','--ctl-icon-gradient':'linear-gradient(90deg,#9dff6a,#d6ff8a)','--ctl-ring':'rgba(170,255,120,.45)','--prog-fill':'linear-gradient(90deg,#9dff6a,#d6ff8a)','--prog-bg':'rgba(180,255,160,.10)','--timer-color':'#e2ffd1'}},
+    {id:'lavenderIce',    name:'Lavender Ice',    note:'lavender → ice',  v:{'--ctl-bg':'linear-gradient(180deg,#1b1620,#121724)','--ctl-icon-gradient':'linear-gradient(90deg,#c9a8ff,#a8e3ff)','--ctl-ring':'rgba(160,140,255,.42)','--prog-fill':'linear-gradient(90deg,#c9a8ff,#a8e3ff)','--prog-bg':'rgba(210,200,255,.10)','--timer-color':'#dee6ff'}},
+    {id:'ember',          name:'Ember',           note:'amber heat',      v:{'--ctl-bg':'linear-gradient(180deg,#1a0e08,#1e1410)','--ctl-icon-gradient':'linear-gradient(90deg,#ff914d,#ffc46b)','--ctl-ring':'rgba(255,170,100,.45)','--prog-fill':'linear-gradient(90deg,#ff914d,#ffc46b)','--prog-bg':'rgba(255,190,140,.12)','--timer-color':'#ffdcb3'}},
+    {id:'roseQuartz',     name:'Rose Quartz',     note:'rose crystal',    v:{'--ctl-bg':'linear-gradient(180deg,#1a1014,#15121a)','--ctl-icon-gradient':'linear-gradient(90deg,#ff9ec7,#ffd1e6)','--ctl-ring':'rgba(255,150,200,.45)','--prog-fill':'linear-gradient(90deg,#ff9ec7,#ffd1e6)','--prog-bg':'rgba(255,190,220,.12)','--timer-color':'#ffe6f3'}},
+    {id:'aurora',         name:'Aurora',          note:'polar glow',      v:{'--ctl-bg':'linear-gradient(180deg,#071218,#0a1522)','--ctl-icon-gradient':'linear-gradient(90deg,#57ffa6,#69c8ff)','--ctl-ring':'rgba(110,230,200,.45)','--prog-fill':'linear-gradient(90deg,#57ffa6,#69c8ff)','--prog-bg':'rgba(160,230,230,.10)','--timer-color':'#d6fbff'}},
+    {id:'grapeSoda',      name:'Grape Soda',      note:'purple pop',      v:{'--ctl-bg':'linear-gradient(180deg,#171129,#190f2a)','--ctl-icon-gradient':'linear-gradient(90deg,#a78bfa,#f0abfc)','--ctl-ring':'rgba(190,140,255,.45)','--prog-fill':'linear-gradient(90deg,#a78bfa,#f0abfc)','--prog-bg':'rgba(200,170,255,.12)','--timer-color':'#efe1ff'}},
+    {id:'ultramarine',    name:'Ultramarine',     note:'deep blue',       v:{'--ctl-bg':'linear-gradient(180deg,#0a0f26,#0b1431)','--ctl-icon-gradient':'linear-gradient(90deg,#3b82f6,#60a5fa)','--ctl-ring':'rgba(80,150,255,.45)','--prog-fill':'linear-gradient(90deg,#3b82f6,#60a5fa)','--prog-bg':'rgba(120,170,255,.12)','--timer-color':'#d7e6ff'}},
+    {id:'electricMango',  name:'Electric Mango',  note:'mango zest',      v:{'--ctl-bg':'linear-gradient(180deg,#160f07,#12110a)','--ctl-icon-gradient':'linear-gradient(90deg,#ffb703,#ffd166)','--ctl-ring':'rgba(255,200,90,.45)','--prog-fill':'linear-gradient(90deg,#ffb703,#ffd166)','--prog-bg':'rgba(255,220,140,.12)','--timer-color':'#ffeab3'}},
+    {id:'pinkLemonade',   name:'Pink Lemonade',   note:'sweet + tart',    v:{'--ctl-bg':'linear-gradient(180deg,#1b1012,#151318)','--ctl-icon-gradient':'linear-gradient(90deg,#ff7aa2,#ffd166)','--ctl-ring':'rgba(255,160,160,.45)','--prog-fill':'linear-gradient(90deg,#ff7aa2,#ffd166)','--prog-bg':'rgba(255,190,200,.12)','--timer-color':'#ffe6f0'}},
+    {id:'blurple',        name:'Blurple',         note:'brandish blue',   v:{'--ctl-bg':'linear-gradient(180deg,#14122a,#16143a)','--ctl-icon-gradient':'linear-gradient(90deg,#5865f2,#9aa4ff)','--ctl-ring':'rgba(120,130,255,.45)','--prog-fill':'linear-gradient(90deg,#5865f2,#9aa4ff)','--prog-bg':'rgba(160,170,255,.12)','--timer-color':'#e0e5ff'}},
+    {id:'tealPunch',      name:'Teal Punch',      note:'teal snap',       v:{'--ctl-bg':'linear-gradient(180deg,#0b1412,#0c1b1a)','--ctl-icon-gradient':'linear-gradient(90deg,#21d4a3,#66ffe3)','--ctl-ring':'rgba(80,240,200,.45)','--prog-fill':'linear-gradient(90deg,#21d4a3,#66ffe3)','--prog-bg':'rgba(160,255,230,.10)','--timer-color':'#d8fff5'}},
+    {id:'crimsonEdge',    name:'Crimson Edge',    note:'red radar',       v:{'--ctl-bg':'linear-gradient(180deg,#190a0a,#1a0e11)','--ctl-icon-gradient':'linear-gradient(90deg,#ff4d6d,#ffa3a3)','--ctl-ring':'rgba(255,120,140,.45)','--prog-fill':'linear-gradient(90deg,#ff4d6d,#ffa3a3)','--prog-bg':'rgba(255,150,170,.10)','--timer-color':'#ffd7de'}},
+    {id:'mintByte',       name:'Mint Byte',       note:'minty fresh',     v:{'--ctl-bg':'linear-gradient(180deg,#0c1410,#0e1913)','--ctl-icon-gradient':'linear-gradient(90deg,#7efac8,#baffde)','--ctl-ring':'rgba(160,255,220,.45)','--prog-fill':'linear-gradient(90deg,#7efac8,#baffde)','--prog-bg':'rgba(180,255,230,.10)','--timer-color':'#eafff7'}},
+    {id:'royalSun',       name:'Royal Sun',       note:'royal → sun',     v:{'--ctl-bg':'linear-gradient(180deg,#121018,#1a1310)','--ctl-icon-gradient':'linear-gradient(90deg,#8ab4ff,#ffd166)','--ctl-ring':'rgba(200,200,80,.45)','--prog-fill':'linear-gradient(90deg,#8ab4ff,#ffd166)','--prog-bg':'rgba(200,210,255,.10)','--timer-color':'#fff0c8'}},
+    {id:'violetStorm',    name:'Violet Storm',    note:'electric violet', v:{'--ctl-bg':'linear-gradient(180deg,#1a0f1f,#110f21)','--ctl-icon-gradient':'linear-gradient(90deg,#b37aff,#7aa6ff)','--ctl-ring':'rgba(150,140,255,.45)','--prog-fill':'linear-gradient(90deg,#b37aff,#7aa6ff)','--prog-bg':'rgba(200,180,255,.12)','--timer-color':'#e8ddff'}},
+    {id:'desertDusk',     name:'Desert Dusk',     note:'sand dusk',       v:{'--ctl-bg':'linear-gradient(180deg,#161210,#1a1510)','--ctl-icon-gradient':'linear-gradient(90deg,#e0b084,#ffe0a1)','--ctl-ring':'rgba(255,200,140,.42)','--prog-fill':'linear-gradient(90deg,#e0b084,#ffe0a1)','--prog-bg':'rgba(255,220,180,.10)','--timer-color':'#ffe9cc'}},
+    {id:'iceMint',        name:'Ice Mint',        note:'icy mint',        v:{'--ctl-bg':'linear-gradient(180deg,#0e1316,#0e1714)','--ctl-icon-gradient':'linear-gradient(90deg,#9ae6ff,#baffde)','--ctl-ring':'rgba(130,230,230,.42)','--prog-fill':'linear-gradient(90deg,#9ae6ff,#baffde)','--prog-bg':'rgba(190,240,255,.10)','--timer-color':'#e6fbff'}},
+    {id:'rubyGold',       name:'Ruby Gold',       note:'ruby → gold',     v:{'--ctl-bg':'linear-gradient(180deg,#1a0e12,#1a1210)','--ctl-icon-gradient':'linear-gradient(90deg,#ff5a8a,#ffde87)','--ctl-ring':'rgba(255,160,150,.45)','--prog-fill':'linear-gradient(90deg,#ff5a8a,#ffde87)','--prog-bg':'rgba(255,200,190,.12)','--timer-color':'#ffe0e9'}},
+    {id:'cobaltLime',     name:'Cobalt Lime',     note:'blue → lime',     v:{'--ctl-bg':'linear-gradient(180deg,#0a1020,#0d1514)','--ctl-icon-gradient':'linear-gradient(90deg,#54a0ff,#b6ff6a)','--ctl-ring':'rgba(140,210,140,.45)','--prog-fill':'linear-gradient(90deg,#54a0ff,#b6ff6a)','--prog-bg':'rgba(160,210,255,.12)','--timer-color':'#d8f6e0'}},
+    {id:'goldenHour',     name:'Golden Hour',     note:'soft gold',       v:{'--ctl-bg':'linear-gradient(180deg,#14100c,#15120e)','--ctl-icon-gradient':'linear-gradient(90deg,#ffc76b,#fff0a3)','--ctl-ring':'rgba(255,215,140,.42)','--prog-fill':'linear-gradient(90deg,#ffc76b,#fff0a3)','--prog-bg':'rgba(255,235,190,.12)','--timer-color':'#fff3c9'}},
+    {id:'aquaPurple',     name:'Aqua Purple',     note:'aqua ↔ purple',   v:{'--ctl-bg':'linear-gradient(180deg,#0d1120,#111125)','--ctl-icon-gradient':'linear-gradient(90deg,#5ad1ff,#b478ff)','--ctl-ring':'rgba(150,180,255,.42)','--prog-fill':'linear-gradient(90deg,#5ad1ff,#b478ff)','--prog-bg':'rgba(190,210,255,.10)','--timer-color':'#e4ebff'}},
+    {id:'plasma',         name:'Plasma',          note:'hot magenta',     v:{'--ctl-bg':'linear-gradient(180deg,#170b16,#180b14)','--ctl-icon-gradient':'linear-gradient(90deg,#ff49c6,#ff8af5)','--ctl-ring':'rgba(255,120,210,.45)','--prog-fill':'linear-gradient(90deg,#ff49c6,#ff8af5)','--prog-bg':'rgba(255,170,230,.12)','--timer-color':'#ffd8f5'}},
+    {id:'skyPeach',       name:'Sky Peach',       note:'sky → peach',     v:{'--ctl-bg':'linear-gradient(180deg,#0f1220,#121216)','--ctl-icon-gradient':'linear-gradient(90deg,#80cfff,#ffbdaa)','--ctl-ring':'rgba(180,190,255,.38)','--prog-fill':'linear-gradient(90deg,#80cfff,#ffbdaa)','--prog-bg':'rgba(200,220,255,.10)','--timer-color':'#ffe6de'}},
+    {id:'limeBerry',      name:'Lime Berry',      note:'lime → berry',    v:{'--ctl-bg':'linear-gradient(180deg,#0e130e,#120e14)','--ctl-icon-gradient':'linear-gradient(90deg,#a6ff69,#b07bff)','--ctl-ring':'rgba(180,255,160,.40)','--prog-fill':'linear-gradient(90deg,#a6ff69,#b07bff)','--prog-bg':'rgba(200,255,200,.10)','--timer-color':'#ece3ff'}},
+    {id:'steelRose',      name:'Steel Rose',      note:'cool rose',       v:{'--ctl-bg':'linear-gradient(180deg,#121620,#161218)','--ctl-icon-gradient':'linear-gradient(90deg,#a8b9d1,#ff9ec7)','--ctl-ring':'rgba(170,190,230,.40)','--prog-fill':'linear-gradient(90deg,#a8b9d1,#ff9ec7)','--prog-bg':'rgba(200,210,230,.10)','--timer-color':'#ffe6f1'}},
+    {id:'cyanTangerine',  name:'Cyan Tangerine',  note:'cyan → tang',     v:{'--ctl-bg':'linear-gradient(180deg,#0b1216,#16110b)','--ctl-icon-gradient':'linear-gradient(90deg,#6be4ff,#ff9e4d)','--ctl-ring':'rgba(140,200,255,.40)','--prog-fill':'linear-gradient(90deg,#6be4ff,#ff9e4d)','--prog-bg':'rgba(190,230,255,.10)','--timer-color':'#ffe5cf'}},
+    {id:'marina',         name:'Marina',          note:'sea blue',        v:{'--ctl-bg':'linear-gradient(180deg,#0a1320,#0d1c2e)','--ctl-icon-gradient':'linear-gradient(90deg,#52a8ff,#7cd4ff)','--ctl-ring':'rgba(115,190,255,.40)','--prog-fill':'linear-gradient(90deg,#52a8ff,#7cd4ff)','--prog-bg':'rgba(180,220,255,.10)','--timer-color':'#d8ecff'}},
+    {id:'pearl',          name:'Pearl',           note:'soft pearl',      v:{'--ctl-bg':'linear-gradient(180deg,#131416,#101214)','--ctl-icon-gradient':'linear-gradient(90deg,#eaeaea,#ffffff)','--ctl-ring':'rgba(220,220,220,.35)','--prog-fill':'linear-gradient(90deg,#eaeaea,#ffffff)','--prog-bg':'rgba(240,240,240,.10)','--timer-color':'#f6f6f6','--pp-icon-color':'#111'}},
+    {id:'candy',          name:'Candy',           note:'candy stripe',    v:{'--ctl-bg':'linear-gradient(180deg,#180f12,#140f18)','--ctl-icon-gradient':'linear-gradient(90deg,#ff8ab3,#9aa4ff)','--ctl-ring':'rgba(200,150,255,.45)','--prog-fill':'linear-gradient(90deg,#ff8ab3,#9aa4ff)','--prog-bg':'rgba(210,170,255,.12)','--timer-color':'#ffe2f0'}},
+    {id:'forest',         name:'Forest',          note:'deep green',      v:{'--ctl-bg':'linear-gradient(180deg,#0b120e,#0d1a14)','--ctl-icon-gradient':'linear-gradient(90deg,#57cc99,#a8ffcf)','--ctl-ring':'rgba(110,230,170,.40)','--prog-fill':'linear-gradient(90deg,#57cc99,#a8ffcf)','--prog-bg':'rgba(170,255,210,.10)','--timer-color':'#ddffe9'}}
+  ]; // 37 entries
+
+  // ---- Build palette button + PORTAL menu ----
+  const wrap = document.createElement('div'); wrap.style.display='inline-block';
+  const btn = document.createElement('button');
+  btn.className = 'ctl-theme-btn'; btn.id = 'ctl-theme-btn';
+  btn.setAttribute('aria-haspopup','menu'); btn.setAttribute('aria-expanded','false');
+  btn.title = 'Player theme';
+  btn.innerHTML = '<span class="material-icons" aria-hidden="true">palette</span>';
+
+  const menu = document.createElement('div');
+  menu.className = 'ctl-theme-menu'; menu.id = 'ctl-theme-menu';
+  menu.setAttribute('role','menu'); menu.setAttribute('aria-label','Player control themes');
+  menu.hidden = true; document.body.appendChild(menu);
+
+  T.forEach(t=>{
+    const chip = document.createElement('button');
+    chip.type = 'button'; chip.className = 'theme-chip'; chip.setAttribute('role','menuitem'); chip.dataset.id = t.id;
+    const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.setProperty('--chip-gradient', t.v['--ctl-icon-gradient'] || 'linear-gradient(90deg,#999,#bbb)');
+    const text = document.createElement('div'); text.className = 'text';
+    const title = document.createElement('div'); title.className = 'title'; title.textContent = t.name;
+    const note  = document.createElement('div'); note.className  = 'note';  note.textContent  = t.note;
+    text.appendChild(title); text.appendChild(note);
+    chip.appendChild(sw); chip.appendChild(text);
+    chip.addEventListener('click', ()=>{ applyThemeId(t.id); closeMenu(); });
+    menu.appendChild(chip);
+  });
+
+  wrap.appendChild(btn);
+  controls.appendChild(wrap);
+
+  // ---- Helpers ----
+  function setImportant(el, prop, value){ if(!el) return; try{ el.style.setProperty(prop, value, 'important'); }catch{} }
+  function applyVars(target, vars){ Object.keys(vars).forEach(k => target.style.setProperty(k, vars[k])); }
+
+  // Center the portal menu under the button (viewport-clamped)
+  function positionMenu(){
+    if (menu.hidden) return;
+    // Temporarily ensure we can measure
+    const prevVis = menu.style.visibility; menu.style.visibility = 'hidden'; menu.style.display = 'grid';
+    const r = btn.getBoundingClientRect();
+    const spacing = 8;
+    const mw = Math.min(320, Math.max(260, menu.offsetWidth || 320));
+    const mh = menu.offsetHeight || 280;
+    let left = r.left + r.width/2 - mw/2;
+    left = Math.min(window.innerWidth - mw - 8, Math.max(8, left));
+    let top  = r.bottom + spacing;
+    if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - spacing - mh);
+    menu.style.left = `${left}px`;
+    menu.style.top  = `${top + window.scrollY}px`;
+    // Restore visibility
+    menu.style.visibility = prevVis || '';
+  }
+
+  // ---- Apply + persist ----
+  function applyThemeId(id, persist=true){
+    const t = T.find(x=>x.id===id) || T[0];
+    applyVars(controls, t.v);
+
+    // Play/Pause disc + icon color (solid)
+    const ppInner = t.v['--prog-fill'] || t.v['--ctl-icon-gradient'] || 'linear-gradient(90deg,#ffffff,#ffffff)';
+    controls.style.setProperty('--pp-inner', ppInner);
+    controls.style.setProperty('--pp-outer', 'linear-gradient(135deg, #232a3a, #151820)');
+    controls.style.setProperty('--pp-glow',  'rgba(95,160,255,.45)');
+    controls.style.setProperty('--pp-icon-color', t.v['--pp-icon-color'] || '#ffffff');
+
+    // Progress area
+    if (progress){
+      const progFill = t.v['--prog-fill'] || t.v['--ctl-icon-gradient'] || 'linear-gradient(90deg,#5ad1ff,#a97aff)';
+      const progBg   = t.v['--prog-bg']   || 'rgba(255,255,255,.10)';
+      const timerCol = t.v['--timer-color'] || '#d5e6ff';
+      setImportant(progress, 'background', progBg);
+      if (bar) setImportant(bar, 'background', progFill);
+      if (tCur) setImportant(tCur, 'color', timerCol);
+      if (tMax) setImportant(tMax, 'color', timerCol);
+    }
+
+    try{ if(persist) localStorage.setItem(STORE_KEY, id); }catch{}
+    window.dispatchEvent(new CustomEvent('player:controls-theme', { detail:{ id, vars:t.v }}));
+  }
+  function restoreTheme(){ let id=null; try{ id=localStorage.getItem(STORE_KEY); }catch{} applyThemeId(id || T[0].id, false); }
+
+  // ---- Menu interactions ----
+  function openMenu(){
+    menu.hidden = false; btn.setAttribute('aria-expanded','true');
+    // allow layout to paint then position (prevents offset lag)
+    requestAnimationFrame(positionMenu);
+  }
+  function closeMenu(){ menu.hidden = true; btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); menu.hidden ? openMenu() : closeMenu(); });
+  document.addEventListener('click', (e)=>{ if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) closeMenu(); });
+  window.addEventListener('resize', positionMenu, { passive:true });
+  window.addEventListener('scroll', positionMenu, { passive:true });
+  btn.addEventListener('keydown', (e)=>{ if(e.key==='ArrowDown' || e.key==='Enter' || e.key===' '){ e.preventDefault(); openMenu(); const first=menu.querySelector('.theme-chip'); first?.focus(); }});
+  menu.addEventListener('keydown', (e)=>{
+    const chips=[...menu.querySelectorAll('.theme-chip')];
+    const i=chips.indexOf(document.activeElement);
+    if(e.key==='Escape'){ closeMenu(); btn.focus(); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); chips[Math.min(i+1, chips.length-1)]?.focus(); }
+    else if(e.key==='ArrowUp'){   e.preventDefault(); chips[Math.max(i-1, 0)]?.focus(); }
+  });
+
+  // Boot
+  restoreTheme();
+})();
+</script>
+<script>
+/*!
+ * G73 EQ Button Animator – Fixed Gradient (Blue → Purple)
+ * - Always uses same gradient for bars
+ * - Circular button, smooth animation, "EQ" overlay
+ */
+(function(){
+  const btn = document.getElementById('open-eq');
+  if(!btn) return;
+
+  // ---------- Scoped CSS ----------
+  const css = `
+  #open-eq.eq-fab{
+    --eqbtn-size: 64px;
+    --eqbtn-bg: color-mix(in srgb, #0b0f14 78%, transparent);
+    --eqbtn-border: rgba(255,255,255,.12);
+    --eqbtn-ring: rgba(120,200,255,.35);
+
+    width: var(--eqbtn-size) !important;
+    height: var(--eqbtn-size) !important;
+    border-radius: 50% !important;
+    display: grid !important; place-items: center !important;
+    background: var(--eqbtn-bg) !important;
+    border: 1px solid var(--eqbtn-border) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 8px 22px rgba(0,0,0,.45) !important;
+    padding: 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  #open-eq.eq-fab:hover{
+    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 0 3px var(--eqbtn-ring) !important;
+    transform: translateY(-1px);
+  }
+  #open-eq .eq-ico{ width: 66%; height: 66%; display:block; }
+  #open-eq .eq-ico .bar{
+    transform-origin: 50% 100%;
+    animation: g73-eq-bounce 2.25s cubic-bezier(.42,0,.2,1) infinite;
+    animation-play-state: paused;
+  }
+  #open-eq.is-playing .eq-ico .bar{ animation-play-state: running; }
+  #open-eq:not(.is-playing) .eq-ico .bar{
+    animation: g73-eq-idle 6.6s cubic-bezier(.42,0,.2,1) infinite;
+    animation-play-state: running; opacity: .9;
+  }
+  @media (prefers-reduced-motion: reduce){
+    #open-eq .eq-ico .bar{ animation: none !important; }
+  }
+  #open-eq .eq-label{
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    pointer-events: none; user-select: none;
+    font-weight: 800; letter-spacing: .04em; font-size: 14px;
+    color: #ffffff;
+    text-shadow: 0 0 2px rgba(0,0,0,.55), 0 1px 6px rgba(0,0,0,.45);
+  }
+  #open-eq .eq-label::after{
+    content: '';
+    position: absolute; width: 46%; height: 1px; bottom: 16%;
+    left: 27%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+    filter: blur(.3px);
+  }
+  @keyframes g73-eq-bounce{
+    0%   { transform: scaleY(.28); }
+    18%  { transform: scaleY(.92); }
+    36%  { transform: scaleY(.44); }
+    54%  { transform: scaleY(.80); }
+    72%  { transform: scaleY(.38); }
+    100% { transform: scaleY(.70); }
+  }
+  @keyframes g73-eq-idle{
+    0%,100%{ transform: scaleY(.42); }
+    50%    { transform: scaleY(.56); }
+  }
+  `;
+  document.head.appendChild(Object.assign(document.createElement('style'),{textContent:css}));
+
+  // ---------- Render ----------
+  function render(){
+    btn.innerHTML = `
+      <svg class="eq-ico" viewBox="0 0 48 48" role="img" aria-hidden="true">
+        <defs>
+          <linearGradient id="g73-eq-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="#5fa0ff"/>
+            <stop offset="100%" stop-color="#b478ff"/>
+          </linearGradient>
+          <filter id="g73-soft" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#g73-soft)">
+          <rect class="bar" x="8.5"  y="10" width="5" height="28" rx="2.5" fill="url(#g73-eq-grad)" style="animation-delay:-0.00s"></rect>
+          <rect class="bar" x="17.5" y="6"  width="5" height="32" rx="2.5" fill="url(#g73-eq-grad)" style="animation-delay:-0.30s"></rect>
+          <rect class="bar" x="26.5" y="12" width="5" height="26" rx="2.5" fill="url(#g73-eq-grad)" style="animation-delay:-0.60s"></rect>
+          <rect class="bar" x="35.5" y="4"  width="5" height="34" rx="2.5" fill="url(#g73-eq-grad)" style="animation-delay:-0.90s"></rect>
+          <rect class="bar" x="22"   y="8"  width="3" height="30" rx="1.5" fill="url(#g73-eq-grad)" style="animation-delay:-1.20s; opacity:.9"></rect>
+        </g>
+      </svg>
+      <div class="eq-label">EQ</div>
+    `;
+  }
+
+  render();
+
+  // ---------- Playback state ----------
+  const audio = document.getElementById('main-audio');
+  if (audio){
+    const setState = ()=> btn.classList.toggle('is-playing', !audio.paused && !audio.ended && audio.currentTime > 0);
+    ['play','playing','pause','ended','timeupdate'].forEach(ev=>audio.addEventListener(ev, setState, {passive:true}));
+    setTimeout(setState, 0);
+  }
+
+  btn.setAttribute('aria-label', btn.getAttribute('aria-label') || 'Open Equalizer');
+})();
+</script>
+<!-- Organizer modal -->
+<script src="js/player/organizer-modal.js"></script>
+<script src="js/player/organizer-adapter.js"></script>
+</body>
+</html>

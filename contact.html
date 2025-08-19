@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Contact G Jordan</title>
+
+        <link
+            href="https://fonts.googleapis.com/icon?family=Material+Icons"
+            rel="stylesheet" />
+        <style>
+            :root {
+                --primary-color: limegreen;
+                --accent-color: gold;
+                --dark-bg: #111;
+                --text-color: #ddd;
+                --navbar-bg: #000;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: "Arial", sans-serif;
+                background: var(--dark-bg);
+                color: var(--text-color);
+                overflow-x: hidden;
+            }
+            #background-canvas {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: -1;
+                pointer-events: none;
+                opacity: 0.4;
+                mix-blend-mode: screen;
+            }
+            .navbar {
+                position: fixed;
+                top: 0;
+                width: 100%;
+                background: var(--navbar-bg);
+                padding: 15px;
+                display: flex;
+                align-items: center;
+                z-index: 1000;
+            }
+            .navbar-title {
+                font-size: 20px;
+                font-weight: bold;
+                color: var(--accent-color);
+                text-shadow: 0px 0px 8px var(--accent-color);
+                flex-grow: 1;
+                text-align: center;
+                transition: all 0.4s ease;
+            }
+            .menu-icon {
+                font-size: 30px;
+                cursor: pointer;
+                transition: transform 0.3s ease-in-out;
+                margin-left: 15px;
+            }
+            .menu-icon.open {
+                transform: rotate(180deg);
+                color: red;
+            }
+            .menu {
+                display: none;
+                flex-direction: column;
+                position: fixed;
+                top: 60px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.9);
+                width: 80%;
+                border-radius: 10px;
+                text-align: center;
+                padding: 10px 0;
+                opacity: 0;
+                transition:
+                    opacity 0.5s ease-in-out,
+                    transform 0.5s ease-in-out;
+            }
+            .menu.show {
+                display: flex;
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            .menu a {
+                display: block;
+                margin: 10px 20px;
+                padding: 12px 20px;
+                background: rgba(0, 0, 0, 0.7);
+                color: var(--accent-color);
+                border-radius: 12px;
+                border: 1px solid var(--primary-color);
+                box-shadow: 0 0 10px var(--primary-color);
+                text-decoration: none;
+                font-size: 18px;
+                text-shadow: 0 0 8px var(--primary-color);
+                transition: all 0.3s ease;
+            }
+            .menu a:hover {
+                background: rgba(0, 255, 0, 0.1);
+                color: var(--primary-color);
+                transform: scale(1.05);
+                box-shadow: 0 0 16px var(--primary-color);
+            }
+            .contact-container {
+                max-width: 450px;
+                background: rgba(0, 0, 0, 0.7);
+                margin: 120px auto 50px;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 0 15px var(--primary-color);
+            }
+            h1 {
+                text-align: center;
+                margin-bottom: 20px;
+                color: var(--accent-color);
+                text-shadow: 0 0 8px var(--accent-color);
+            }
+            input,
+            textarea,
+            button {
+                width: 100%;
+                margin-bottom: 15px;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.1);
+                color: var(--text-color);
+                font-size: 16px;
+            }
+            input::placeholder,
+            textarea::placeholder {
+                color: #999;
+            }
+            button {
+                background: var(--primary-color);
+                color: black;
+                font-weight: bold;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            button:hover {
+                background: var(--accent-color);
+            }
+            footer {
+                text-align: center;
+                margin-top: 40px;
+                padding: 20px;
+                background: rgba(0, 0, 0, 0.8);
+                color: var(--accent-color);
+                font-size: 14px;
+                box-shadow: 0 0 8px var(--primary-color);
+                text-shadow: 0 0 6px var(--accent-color);
+            }
+        </style>
+    </head>
+
+    <body>
+        <canvas id="background-canvas"></canvas>
+<!-- Navbar -->
+<div class="navbar">
+  <span class="menu-icon" id="menuIcon" onclick="toggleMenu()">☰</span>
+  <span class="navbar-title" id="navbarTitle">G Jordan's Official Webpage</span>
+  <div class="menu" id="menu">
+    <a href="index.html">Home</a>
+    <a href="player.html">Videos</a>
+    <a href="about.html">About</a>
+    <a href="#">Contact</a>
+  </div>
+</div>
+        <!-- Contact Form -->
+        <div class="contact-container">
+            <h1>Contact G Jordan</h1>
+            <form id="contact-form">
+                <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    placeholder="Your Name"
+                    required />
+                <input
+                    type="email"
+                    name="email"
+                    id="email"
+                    placeholder="Your Email"
+                    required />
+                <input
+                    type="text"
+                    name="subject"
+                    id="subject"
+                    placeholder="Subject"
+                    required />
+                <textarea
+                    name="message"
+                    id="message"
+                    placeholder="Your Message"
+                    rows="6"
+                    required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            &copy; 2025 G Jordan |
+            <span style="color: limegreen">G73™ LLC</span>
+        </footer>
+
+        <!-- Firebase Contact Form -->
+        <script type="module">
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+            import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+            import {
+                getFirestore,
+                collection,
+                addDoc
+            } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyAwAfhOcpHxU_NEbMoWBJYviomMKnyekas",
+                authDomain: "gj-email-1b224.firebaseapp.com",
+                projectId: "gj-email-1b224",
+                storageBucket: "gj-email-1b224.appspot.com",
+                messagingSenderId: "709429809330",
+                appId: "1:709429809330:web:6da4635425e2e1702a79ab",
+                measurementId: "G-JNCGSP9YZ4"
+            };
+
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+            const db = getFirestore(app);
+
+            const form = document.getElementById("contact-form");
+            form.addEventListener("submit", async e => {
+                e.preventDefault();
+
+                try {
+                    await addDoc(collection(db, "contacts"), {
+                        name: form.name.value.trim(),
+                        email: form.email.value.trim(),
+                        subject: form.subject.value.trim(),
+                        message: form.message.value.trim(),
+                        timestamp: new Date()
+                    });
+
+                    window.location.href = "thankyou.html";
+                } catch (error) {
+                    console.error("Error sending message:", error);
+                    alert("Something went wrong. Please try again later.");
+                }
+            });
+        </script>
+
+        <!-- Navbar Animation Script -->
+        <script>
+            function toggleMenu() {
+                const menu = document.getElementById("menu");
+                const menuIcon = document.getElementById("menuIcon");
+                const navbarTitle = document.getElementById("navbarTitle");
+                if (menu.classList.contains("show")) {
+                    menu.classList.remove("show");
+                    menuIcon.innerHTML = "☰";
+                    menuIcon.classList.remove("open");
+                    navbarTitle.innerText = "G Jordan's Official Webpage";
+                } else {
+                    menu.classList.add("show");
+                    menuIcon.innerHTML = "✖";
+                    menuIcon.classList.add("open");
+                    navbarTitle.innerText = "G Jordan’s World";
+                }
+            }
+        </script>
+
+        <!-- Background Particles Script -->
+        <script>
+            const canvas = document.getElementById("background-canvas");
+            const ctx = canvas.getContext("2d");
+
+            let particlesArray;
+
+            function initParticles() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                particlesArray = [];
+
+                const numberOfParticles = 70;
+                for (let i = 0; i < numberOfParticles; i++) {
+                    particlesArray.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        size: Math.random() * 2 + 1,
+                        speedX: Math.random() * 0.5 - 0.25,
+                        speedY: Math.random() * 0.5 - 0.25,
+                        color: `hsl(${Math.random() * 360}, 100%, 60%)`
+                    });
+                }
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                particlesArray.forEach(p => {
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+
+                    if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                });
+
+                requestAnimationFrame(animateParticles);
+            }
+
+            window.addEventListener("resize", initParticles);
+            initParticles();
+            animateParticles();
+        </script>
+    </body>
+</html>

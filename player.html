@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">  
+<head>  
+  <meta charset="utf-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1" />  
+  <title>G73 Player</title>  
+  <meta name="theme-color" content="#0b0d10">
+
+  <!-- Base styles -->
+  <link rel="stylesheet" href="css/g73-player.css">  
+  <link rel="stylesheet" href="style.css" />  
+  <link rel="stylesheet" href="css/main.css" />  
+  <link rel="stylesheet" href="css/g73-scope.css">  
+  <link rel="stylesheet" href="css/g73-overrides.css">  
+
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />  
+
+  <!-- Favicon -->
+  <link rel="icon" href="favicon.png" type="image/png">  
+</head>  
+
+<body>  
+  <!-- NAVBAR -->
+  <div class="navbar">  
+    <span class="menu-icon" id="menuIcon" onclick="toggleMenu()">☰</span>  
+    <span class="navbar-title">G Jordan's Official Webpage</span>  
+    <span id="account-btn" onclick="toggleAuthModal()"><i class="material-icons">account_circle</i></span>  
+    <div class="menu" id="menu" hidden>  
+      <a href="index.html">Music</a>  
+      <a href="#">Videos</a>  
+      <a href="about.html">About</a>  
+      <a href="contact.html">Contact</a>  
+    </div>  
+  </div>  
+
+  <!-- Spacer -->
+  <div id="nav-spacer" aria-hidden="true"></div>  
+
+  <!-- Theme & Layout settings -->
+  <section id="settings" aria-label="Theme & Layout settings">  
+    <h3>Theme</h3>  
+    <div class="field"><label>Background</label><input type="color" id="bgPicker"></div>  
+    <div class="field"><label>Text</label><input type="color" id="textPicker"></div>  
+    <div class="field"><label>Primary</label><input type="color" id="primaryPicker" value="#D4AF37"></div>  
+    <div class="field"><label>Secondary</label><input type="color" id="secondaryPicker" value="#8B6B1B"></div>  
+    <div class="field"><label>Glow strength</label><input type="range" id="glowStrength" min="0.4" max="1.6" step="0.05" value="1"></div>  
+    <div class="field"><label>Glow opacity</label><input type="range" id="glowAlpha" min="0" max="1" step="0.05" value="0.55"></div>  
+    <div class="field"><label>Corner radius</label><input type="range" id="radius" min="6" max="24" step="1" value="12"></div>  
+    <div class="field"><label>Base font size</label><input type="range" id="fontSize" min="12" max="18" step="1" value="14"></div>  
+
+    <h3 style="margin-top:12px">Playlist Layout</h3>  
+    <div class="field"><label>Layout</label><select id="layoutMode"><option value="list">List</option><option value="grid">Grid</option></select></div>  
+    <div class="field"><label>Grid columns</label><input type="range" id="gridCols" min="1" max="4" step="1" value="2"></div>  
+    <div class="field"><label>Thumb width</label><input type="range" id="thumbW" min="56" max="200" step="4" value="64"></div>  
+
+    <div class="settings-actions">  
+      <button class="icon-btn" id="saveTheme" title="Save">  
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 16.2l-3.5-3.5L4 14.2l5 5 11-11-1.5-1.5z"/></svg>  
+      </button>  
+      <button class="icon-btn" id="resetTheme" title="Reset">  
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 6V3L8 7l4 4V6c2.76 0 5 2.24 5 5a5 5 0 11-5-5z"/></svg>  
+      </button>  
+      <button class="icon-btn" id="closeSettings" title="Close">  
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.29 9.17 12 2.88 5.71 4.29 4.3 10.59 10.6l6.3-6.3z"/></svg>  
+      </button>  
+    </div>  
+    <small>Settings are stored locally in your browser.</small>
+  </section>  
+
+  <!-- MAIN -->
+  <main>  
+    <aside id="list" aria-label="Playlist" layout="list"></aside>  
+
+    <section id="player">  
+      <div id="videoShell" style="padding-top:100px;">  
+        <div id="fsOverlay">  
+          <button class="icon-btn" id="fsExit" title="Exit fullscreen">  
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10H5V5h5v2H7v3zm12-5h-5v2h3v3h2V5zM7 17h3v2H5v-5h2v3zm10-3h2v5h-5v-2h3v-3z"/></svg>  
+          </button>  
+        </div>  
+        <video id="video" crossorigin="anonymous" controls playsinline preload="metadata"  
+               controlslist="nodownload" oncontextmenu="return false"></video>  
+      </div>
+
+      <img src="G73.png" alt="G73"   
+           style="display:block; margin:auto; width:100px; filter: drop-shadow(0 0 5px gold); padding:5px;">
+
+      <div class="meta">
+        <span class="name" id="currentName">Select a video…</span>
+        <div class="toolbar">
+          <button class="icon-btn" id="settingsBtn" title="Theme">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19.14 12.94a7 7 0 11-7.08-7.08 5 5 0 107.08 7.08z"/></svg>
+          </button>
+          <button class="icon-btn" id="clearCacheBtn" title="Clear thumbnails cache">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zm13-14h-3.5l-1-1h-5l-1 1H4v2h15V5z"/></svg>
+          </button>
+          <button class="icon-btn" id="shareBtn" title="Share">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.26 3.26 0 000-1.39l7.05-4.11A2.99 2.99 0 0018 7.91a3 3 0 10-3-3c0 .23.03 .45.08 .66l-7.05 4.11a3 3 0 100 4.64l7.05 4.11c-.05 .21-.08 .43-.08 .66a3 3 0 103-3z"/></svg>
+          </button>
+
+          <div class="spacer"></div>  
+
+          <button class="icon-btn" id="shuffleBtn" title="Shuffle" aria-pressed="false">  
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17 3h4v4h-2V6.41l-4.29 4.3-1.42-1.42L17.59 5H17V3zM3 7h5l3 4-3 4H3v-2h4.17L10 11 7.17 9H3V7zm18 10v4h-4v-2h1.59l-4.3-4.29 1.42-1.42L20 17.59V17h1z"/></svg>  
+          </button>  
+          <button class="icon-btn" id="loopBtn" title="Loop" aria-pressed="false">  
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6h2a8 8 0 00-8-8zm-6 6H4a8 8 0 008 8v3l4-4-4-4v3a6 6 0 01-6-6z"/></svg>  
+          </button>  
+          <button class="icon-btn" id="pipBtn" title="Picture-in-Picture" style="display:none">  
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 5h18v14H3V5zm2 2v10h14V7H5zm7 3h5v4h-5v-4z"/></svg>  
+          </button>  
+          <button class="icon-btn" id="fsBtn" title="Fullscreen">  
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm12 5h-5v-2h3v-3h2v5zM7 7h3V5H5v5h2V7zm12 3V5h-5v2h3v3h2z"/></svg>  
+          </button>  
+        </div>  
+      </div>  
+    </section>
+  </main>  
+
+  <!-- FOOTER -->
+  <footer>  
+    <div class="branding-footer">  
+      <p>&copy; 2025 G Jordan &nbsp;|&nbsp; <span class="tm">G73&trade; LLC</span></p>  
+    </div>  
+  </footer>  
+
+  <!-- Modals -->
+  <div id="auth-modal" class="modal" hidden>  
+    <div class="modal-content">  
+      <span class="close" onclick="closeAuthModal()">&times;</span>  
+      <h2>Sign Up / Login</h2>  
+      <input type="email" id="modal-email" placeholder="Email" />  
+      <div style="position: relative;">  
+        <input type="password" id="modal-password" placeholder="Password" />  
+        <span id="toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;">  
+          <i class="material-icons" id="toggle-icon">visibility</i>  
+        </span>  
+      </div>  
+      <div id="password-requirements" style="text-align: left; font-size: 13px; color: gold; margin-top: 10px;">  
+        <p id="length-check">• At least 8 characters</p>  
+        <p id="upper-check">• At least 1 uppercase letter</p>  
+        <p id="lower-check">• At least 1 lowercase letter</p>  
+        <p id="number-check">• At least 1 number</p>  
+      </div>  
+      <div>  
+        <button onclick="modalSignUp()">Sign Up</button>  
+        <button onclick="modalLogin()">Login</button>  
+      </div>  
+    </div>  
+  </div>  
+
+  <div id="theme-modal" class="modal" hidden>  
+    <div class="modal-content">  
+      <span class="close" onclick="saveTheme(); closeThemeModal()">&times;</span>  
+      <h2>Customize Your Vibe</h2>  
+      <div class="color-picker-group">  
+        <label>Main Theme Color</label>  
+        <div class="color-preview"><input type="color" id="mainThemeColor" /></div>  
+        <label>Accent Color</label>  
+        <div class="color-preview"><input type="color" id="accentColorPicker" /></div>  
+        <label>Text Color</label>  
+        <div class="color-preview"><input type="color" id="textColorPicker" /></div>  
+        <label>Text Background</label>  
+        <div class="color-preview"><input type="color" id="textBgColorPicker" /></div>  
+        <label>Border Color</label>  
+        <div class="color-preview"><input type="color" id="borderColorPicker" /></div>  
+        <label>Artist Name Color</label>  
+        <div class="color-preview"><input type="color" id="artistColorPicker" /></div>  
+        <label>Like Button Color</label>  
+        <div class="color-preview"><input type="color" id="likeColorPicker" /></div>  
+        <label>Dislike Button Color</label>  
+        <div class="color-preview"><input type="color" id="dislikeColorPicker" /></div>  
+        <label>Download Button Color</label>  
+        <div class="color-preview"><input type="color" id="downloadColorPicker" /></div>  
+      </div>  
+      <div class="button-group">  
+        <button onclick="saveTheme()"><i class="material-icons">check_circle</i> Apply Theme</button>  
+        <button onclick="resetTheme()"><i class="material-icons">refresh</i> Reset to Default</button>  
+        <button onclick="exportTheme()"><i class="material-icons">file_download</i> Export Settings</button>  
+        <input type="file" id="importThemeFile" accept=".json" style="display: none;" onchange="importThemeFromFile(this)">  
+        <button onclick="document.getElementById('importThemeFile').click()"><i class="material-icons">upload_file</i> Import Settings</button>  
+      </div>  
+    </div>  
+  </div>
+
+  <div id="toast"></div>  
+  <div id="toastBox" aria-live="polite"></div>  
+
+  <!-- Scripts -->
+  <script src="js/g73-player.js"></script>    
+  <script type="module" src="js/firebase/firebase-init.js"></script>    
+  <script type="module" src="js/firebase/firebase-stats.js"></script>    
+  <script type="module" src="js/firebase/firebase-auth.js"></script>    
+  <script src="js/theme/theme-init.js"></script>    
+  <script src="js/theme/theme-preview.js"></script>    
+  <script src="js/theme/theme-save.js"></script>    
+  <script src="js/theme/theme-sync.js"></script>    
+  <script src="js/ui/navbar.js"></script>    
+  <script src="js/ui/modals.js"></script>    
+  <script src="js/ui/toast.js"></script>    
+  <script src="js/ui/password-visibility.js"></script>    
+  <script src="js/ui/password-check.js"></script>    
+  <script src="js/main.js"></script>
+
+  <!-- Small utilities that were previously inline -->
+  <script src="js/menu-init.js"></script>
+  <script src="js/theme-controller.js"></script>
+  <script src="js/nav-height.js"></script>
+</body>  
+</html>
